@@ -25,7 +25,7 @@ The application firewall filters by program; pf (the packet filter) by address a
 
 ```
 sudo systemsetup -getremotelogin
-sudo launchctl print-disabled system | grep -Ei 'ssh|screensharing|smbd|ftp'
+sudo launchctl print-disabled system | grep -Ei 'ssh|screensharing|smbd'
 ```
 
 When Remote Login is on, read sshd's effective settings as in [linux.md](linux.md#ssh--the-effective-configuration).
