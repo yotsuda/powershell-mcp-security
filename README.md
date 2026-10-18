@@ -36,7 +36,29 @@ The skill is then available as `powershell-mcp-security:network-security-audit`.
 
 ## Use
 
+A read-only audit:
+
+> Audit the network security of this server. Read-only first, and check what is visible from outside.
+
+From audit to fixes:
+
 > Audit the network security of this server. Read-only first, and check what is visible from outside. Then fix what you find, with my approval for each change, and verify again after a reboot.
+
+A disposable test machine, including what it can reach on your machine:
+
+> Audit the network security of this Windows Sandbox, read-only. Also check what the sandbox can reach on my machine.
+
+## What it runs and sends
+
+The skill is instructions and helper scripts for Claude; it has no hooks, servers or dependencies, and downloads nothing.
+
+- **On the machine being audited**: commands in the PowerShell.MCP console there, shown on its screen as they run. The audit phase only reads (listening ports, firewall rules, sshd and sysctl settings, accounts, update status, logon logs). Changes are made only after you approve each one; `sudo` passwords are typed by you at that console, never into the chat.
+- **On your machine**: TCP connection probes and an SSH login check, sent only to the address of the machine being audited. For a sandbox, a short probe from the sandbox back to your machine's own addresses.
+- **Data**: what the commands return goes to your Claude session only. The skill sends nothing anywhere else and keeps no logs.
+
+## Support
+
+Questions, bug reports and security concerns: [GitHub Issues](https://github.com/yotsuda/powershell-mcp-security/issues).
 
 ## Contributing
 
