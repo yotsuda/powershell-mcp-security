@@ -6,6 +6,8 @@ A Claude Code skill that audits and hardens the network security of a Windows, L
 - **Fixes only with your approval**, in an order that cannot lock you out.
 - **Verified** from outside and again after a reboot — where settings quietly revert.
 
+<img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/fc9c9d41-5cfd-4771-8741-54f344f18617" />
+
 ## Requirements
 
 - **Your machine**: Claude Code, PowerShell 7.4+ and PowerShell.MCP 1.16.0 or later. In PowerShell 7:
