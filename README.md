@@ -56,6 +56,10 @@ The skill is instructions and helper scripts for Claude; it has no hooks, server
 - **On your machine**: TCP connection probes and an SSH login check, sent only to the address of the machine being audited. For a sandbox, a short probe from the sandbox back to your machine's own addresses.
 - **Data**: what the commands return goes to your Claude session only. The skill sends nothing anywhere else and keeps no logs.
 
+## Privacy
+
+See [Privacy](PRIVACY.md): the plugin stores nothing and sends nothing outside your Claude session.
+
 ## Support
 
 Questions, bug reports and security concerns: [GitHub Issues](https://github.com/yotsuda/powershell-mcp-security/issues).
