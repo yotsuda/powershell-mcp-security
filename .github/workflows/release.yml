@@ -45,6 +45,7 @@ jobs:
           if ($plugin -ne $expected) { throw "plugin.json version $plugin != tag $expected" }
           git merge-base --is-ancestor HEAD origin/main
           if ($LASTEXITCODE -ne 0) { throw 'The tag must be on a commit of main.' }
+          $global:LASTEXITCODE = 0
           $notes = $data.PrivateData.PSData.ReleaseNotes
           if ([string]::IsNullOrWhiteSpace($notes)) { throw 'PrivateData.PSData.ReleaseNotes is empty.' }
           $path = Join-Path $env:RUNNER_TEMP 'release-notes.md'
@@ -67,6 +68,8 @@ jobs:
             git merge-base --is-ancestor origin/release HEAD
             if ($LASTEXITCODE -ne 0) { throw 'release has commits that are not in this tag; it cannot be fast-forwarded.' }
           }
+          # ls-remote exits 2 when release does not exist yet (first release); that is fine.
+          exit 0
 
       - name: Assemble the package
         id: stage
