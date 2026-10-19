@@ -37,7 +37,7 @@ In English, so the maintainer can paste from it into the skill:
 
 Everything runs on **this machine** (`execute_command`), never on the target.
 
-1. **Propose** — after the report, say in a few lines what you would report and why, and ask whether to file an issue. If the user says no, stop.
+1. **Propose** — after the report, say in a few lines what you would report and why, and ask whether to file an issue. Name the target explicitly: feedback on the network-security-audit skill, as a public issue on github.com/yotsuda/powershell-mcp-security — the audit report itself is not published. If the user says no, stop.
 2. **Look for duplicates** — search the repository's issues for the topic (`gh issue list -R yotsuda/powershell-mcp-security --state all --search "<keywords>"` if `gh` is installed; otherwise https://github.com/yotsuda/powershell-mcp-security/issues?q=<keywords>). If one covers it, show it to the user and offer to add what is new as a comment instead.
 3. **Show** — the title and body, after the search above. Change what the user asks.
 4. **File it** — the user decides how:

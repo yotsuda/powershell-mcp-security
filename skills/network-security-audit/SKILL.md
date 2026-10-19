@@ -69,6 +69,6 @@ Re-run the checks behind every finding you fixed, from inside **and** outside, a
 Checks collected from many audits help everyone who uses this skill, so feedback is wanted — at two levels:
 
 - **Always**: the report ends with one line inviting issues (see [report.md](report.md)). Do not ask about it.
-- **When you have something concrete** — you can name the file and the line that misled you, or the check you had to work out yourself — offer once, in a sentence, to draft an issue: [feedback.md](feedback.md). Also when the user mentions a check they wish the skill had.
+- **When you have something concrete** — you can name the file and the line that misled you, or the check you had to work out yourself — offer once, in a sentence, to draft an issue: [feedback.md](feedback.md). Also when the user mentions a check they wish the skill had. Say plainly what it is and where it goes, so it cannot be mistaken for publishing the audit: feedback on this skill (network-security-audit), as an issue on github.com/yotsuda/powershell-mcp-security — not the audit results, which stay with the user.
 
 The audit is the user's task; the issue is an extra they can decline.
