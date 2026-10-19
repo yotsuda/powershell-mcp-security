@@ -182,6 +182,7 @@ Logon type 3 = network, 10 = RDP, 5 = service (local, not an attack). Failures (
 
 These are normal there — do not report them as holes, but mention the ones that change severity:
 
+- Listeners on a fresh Sandbox (24H2 base): TCP 135 (RpcSs), 139 (System, IPv4 only), 445 (System), 5040 (CDPSvc, IPv4 only), 49664–49670 (lsass, wininit, EventLog, shared svchosts, spoolsv, services, SessionEnv); UDP 137, 138, 500, 1900, 4500, 5050, 5353, 5355 and a few ephemeral Dnscache/SSDP ports. Anything beyond these was started inside the Sandbox and is what to look at.
 - Firewall rules `Container: allow inbound` / `allow outbound` (all Any) and ICMP echo, added by the container platform: everything listening is reachable from the host and other guests on the same switch. The ICMP echo rules show `LocalPort RPC` — a placeholder ICMP rules carry, not an opening of the RPC endpoint mapper.
 - `EnableLUA = 0`; the logged-on `WDAGUtilityAccount` is an administrator with a password generated at each start.
 - **Elevation in a Sandbox**: there is no UAC prompt and nobody knows the administrator's password, so a console opened as another, non-admin user (e.g. via `runas`) cannot be elevated. For the Admin checks, ask the user to paste the connection line again into a PowerShell window of the Sandbox's own logon (WDAGUtilityAccount, already an administrator), then reconnect.

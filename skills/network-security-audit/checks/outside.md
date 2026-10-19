@@ -100,7 +100,13 @@ For each port that is reachable, collect the evidence for a fix on the host side
 - what listens: `Get-NsaListeningPort` (or `Get-NetTCPConnection -LocalPort <port> -State Listen`);
 - which rule lets it in: `Find-NsaPermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap` (every profile, `Any` and `LocalSubnet` alike). It also lists `WFD Driver-only (TCP-In)` / `(UDP-In)` with everything `Any`: Windows default rules for Wi-Fi Direct driver traffic, not allow-everything rules — the probe shows what actually gets through.
 
-If 135 is reachable, the RPC dynamic ports behind it may be too; the six-port probe does not cover them, so list them under "Not checked" (or find what `svchost` / `wmiprvse` listen on with `Get-NsaListeningPort` and probe those few from the target).
+If 135 is reachable, the RPC dynamic ports behind it may be too, and that changes the severity. List them on this machine, leaving out the audit's own accept port:
+
+```powershell
+Get-NsaListeningPort -Protocol TCP | Where-Object { $_.Port -ge 49152 -and $_.Address -in '0.0.0.0', '::' } | Select-Object -ExpandProperty Port -Unique
+```
+
+then run the same loop on the target with those ports, against both of this machine's addresses. If you skip it, list the dynamic ports under "Not checked".
 
 `vEthernet (Default Switch)` has no network profile (it is missing from `Get-NetConnectionProfile`), so this machine's firewall treats traffic from guests as **Public**: its Public rules are the ones that apply. Rules often found: `File and Printer Sharing (Restrictive) (SMB-In)` (a rule group added in Windows 11 24H2; seen enabled for Private and Public, remote Any, on a host with a shared folder, probably turned on when the folder was shared), `Hyper-V (RPC-EPMAP)`, `Windows Remote Management (HTTP-In)` (Public, LocalSubnet — which includes the guest's subnet).
 

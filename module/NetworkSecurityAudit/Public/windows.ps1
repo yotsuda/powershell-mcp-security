@@ -30,8 +30,8 @@ function Find-NsaPermissiveFirewallRule {
     49152-65535. A rule whose port is Any matches too when it is not tied to a program or
     service (Program Any or System) — e.g. an allow-everything rule. Rules for one program
     with port Any are left out: they let a port in only if that program listens on it, so
-    check them by the listening process. ICMP rules are never matched (their Port shows ICMP
-    types).
+    check them by the listening process. Only TCP, UDP and Any rules are matched: ICMP, IGMP,
+    IPv6-in-IPv4 and other port-less protocols cannot let a port in.
     .EXAMPLE
     Find-NsaPermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap
     #>
@@ -86,7 +86,8 @@ function Find-NsaPermissiveFirewallRule {
                     [bool]($Port | Where-Object { "$_" -match '^\d+$' -and [int]"$_" -ge $lo -and [int]"$_" -le $hi })
                 }
             }
-            if ($o.Protocol -match '^ICMP' -or -not $hit) { continue }
+            # Only TCP/UDP (or Any) carry ports; IPv6-in-IPv4 (41), IGMP (2) and ICMP match LocalPort Any but cannot let a port in.
+            if ($o.Protocol -notin 'TCP', 'UDP', 'Any' -or -not $hit) { continue }
         }
         if ($All -or ($o.Remote -eq 'Any' -and $o.Kind -in 'AllowsEverything', 'AllPorts', 'OpenPort', 'Icmp')) { $o }
     }
