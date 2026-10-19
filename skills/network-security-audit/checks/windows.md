@@ -190,8 +190,8 @@ These are normal there — do not report them as holes, but mention the ones tha
 - `fDenyTSConnections = 0` with no TCP 3389 listener (the display uses a non-TCP channel).
 - Empty `Get-HotFix`; no BitLocker (`Get-BitLockerVolume` fails with 0x80070490).
 - The Sandbox runs the host's OS image, so its UBR follows the host's: compare the **UBR only** with the host's. The build and version may differ — on a 25H2 host (26200) the Sandbox reports 26100 / 24H2, because 25H2 is an enablement package on the same base. That is not a patch gap.
-- Logons: 4624 type 10 from `0.0.0.0` as `WDAGUtilityAccount` (the display connection, even with no 3389 listener) and a few 4625 type 5 as `ContainerUser`.
-- Slow: right after start, `Get-MpComputerStatus` can take over a minute and `Get-NetIPConfiguration` / `Get-ComputerInfo` tens of seconds. Tell the user before running them so the console does not look stuck.
+- Logons: 4624 type 10 from `0.0.0.0` as `WDAGUtilityAccount` (the display connection, even with no 3389 listener), 4624 type 3 with IpAddress `-` as `WDAGUtilityAccount` (local, no remote address), and a few 4625 type 5 as `ContainerUser`.
+- Slow right after start: `Get-MpComputerStatus` can take up to a minute or more, `Get-NetIPConfiguration` / `Get-ComputerInfo` up to tens of seconds; a few minutes later, seconds. Tell the user before running them so the console does not look stuck.
 - With its firewall on, Windows answers closed ports with nothing (stealth mode), so in the outside probe every non-listening port shows `Filtered` even under the allow-everything rule.
 
 Every change is lost when the Sandbox closes, so "verify after a reboot" does not apply. The only lasting fixes are in the `.wsb` file: `<LogonCommand>` (e.g. disable the `Container: allow inbound` rule) and `<Networking>Disable</Networking>`. For a sandbox the bigger question is usually the other direction — what the guest can reach on the host and the LAN (see [outside.md](outside.md#from-the-target-back-to-this-machine)).

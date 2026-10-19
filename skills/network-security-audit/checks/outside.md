@@ -93,6 +93,8 @@ foreach ($h in '<this machine on the target network>', '<this machine on the LAN
 
 The two addresses can give different answers (e.g. 139 reachable on the LAN address but not on the virtual switch address): traffic to the LAN address is judged by the LAN interface's profile (often **Private**), and a `LocalSubnet` rule there also counts this machine's virtual switch subnet as local. Report each address as its own row, check Private `LocalSubnet` rules as well as Public ones, and re-test both addresses after a host-side fix.
 
+Check this machine's LAN profile too: `Get-NetConnectionProfile`. If the LAN interface (Wi-Fi, Ethernet) is **Public**, a rule enabled for Public with remote `Any` — e.g. `File and Printer Sharing (Restrictive) (SMB-In)` — opens this machine to everyone on that network, not only to guests: on a café or hotel Wi-Fi, to strangers. Report it as its own host-side finding (High on a network the user does not control), and say it was inferred from the rules and not tested from another machine on that network.
+
 For each port that is reachable, collect the evidence for a fix on the host side — on **this machine**, where the helper files work just as well (`. <skill dir>/scripts/common.ps1` and `windows.ps1`):
 
 - what listens: `Get-ListeningPort` (or `Get-NetTCPConnection -LocalPort <port> -State Listen`);
@@ -111,3 +113,5 @@ For each port:
 | yes | yes | Exposed — must be intended and restricted to the right sources |
 | yes | no | Blocked by a firewall — name the rule |
 | no | yes | Something else answers (NAT, port forward, another host) — investigate |
+
+Compare per address family. A port bound to `0.0.0.0` or an IPv4 address only is not listening on IPv6, and one bound to `::` only (without dual-stack) not on IPv4. On a Windows target in stealth mode, such a port shows `Filtered` on the other family — that is "not listening there", not a firewall block. Probe IPv6 with the ports bound to `::` or the link-local address, and read the rest accordingly.
