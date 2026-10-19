@@ -2,6 +2,8 @@
 
 Thank you! The most valuable contributions are **checks that catch real misconfigurations** and **fixes that cannot lock anyone out**. Issues are welcome in English or Japanese. In a PR, write the skill's files (checks, fixes, scripts) in English, since Claude reads them; the PR description can be in either language.
 
+The easiest way to contribute is an issue written by Claude: after an audit, the skill has Claude offer to report anything the skill got wrong or missed ([feedback.md](skills/network-security-audit/feedback.md)). Issues are preferred over pull requests — the maintainer folds them into the skill, so many reports never conflict with each other. Pull requests are still welcome for larger additions (a new OS, a new helper); please open an issue first.
+
 The skill runs every command through [PowerShell.MCP](https://github.com/yotsuda/PowerShell.MCP), so please test your change the same way: Claude Code driving the target's PowerShell 7 console (remote control for another machine).
 
 ## Adding a check

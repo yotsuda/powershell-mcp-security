@@ -16,6 +16,8 @@ These are read only to check who can log in and from where.
 
 Command output goes to your own Claude session, as any other tool output does — see [Anthropic's privacy policy](https://www.anthropic.com/legal/privacy) for how Claude handles conversations. The plugin stores nothing. A report is written to your machine only if you ask Claude for one.
 
+If an audit shows the skill itself was wrong or missing something, Claude may offer to write an issue for this repository. Nothing is sent unless you approve it after seeing the full text, and the skill tells Claude to leave out real addresses, names and any other personal data (host names, user names, keys, log lines).
+
 ## Contact
 
 [GitHub Issues](https://github.com/yotsuda/powershell-mcp-security/issues)

@@ -24,6 +24,9 @@ Write the report in the user's language. Keep it short; put raw command output o
 
 ## Cleanup
 <how to end remote control, `sudo -k`, and how to confirm 42777 is closed afterwards>
+
+---
+<one line, in the user's language: checks this skill should add, or anything it got wrong, are welcome as an issue at https://github.com/yotsuda/powershell-mcp-security/issues — and Claude can draft one>
 ```
 
 The audit's own channel shows up as an open port. It is not a finding; list it as such and close it under "Cleanup":
