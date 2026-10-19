@@ -88,4 +88,4 @@ Tested on Ubuntu 24.04 (Hyper-V VM) and Windows 11 (Windows Sandbox). The fix gu
 
 まず読み取りだけで、中（実際に効いている設定）と外（ネットワークから見える状態）を突き合わせます。変更はあなたの承認を得てから、締め出されない順番で行い、外から、そして再起動後にも確かめ直します。
 
-チェック項目や対処の方法の追加を歓迎します（[CONTRIBUTING.md](CONTRIBUTING.md)）。日本語での Issue・PR も歓迎です。
+チェック項目や対処の方法の追加を歓迎します（[CONTRIBUTING.md](CONTRIBUTING.md)）。Issue は日本語でも構いません。PR では、スキルのファイル（チェック項目、対処の方法、スクリプト）は AI が読むので英語で書いてください。PR の説明は日本語でも構いません。

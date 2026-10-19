@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you! The most valuable contributions are **checks that catch real misconfigurations** and **fixes that cannot lock anyone out**. Issues and PRs in English or Japanese are welcome.
+Thank you! The most valuable contributions are **checks that catch real misconfigurations** and **fixes that cannot lock anyone out**. Issues are welcome in English or Japanese. In a PR, write the skill's files (checks, fixes, scripts) in English, since Claude reads them; the PR description can be in either language.
 
 The skill runs every command through [PowerShell.MCP](https://github.com/yotsuda/PowerShell.MCP), so please test your change the same way: Claude Code driving the target's PowerShell 7 console (remote control for another machine).
 
