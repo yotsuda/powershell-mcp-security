@@ -25,7 +25,7 @@ Record the network profile (Public / Private / DomainAuthenticated): firewall ru
 
 ## Listening ports
 
-With the helpers loaded: `Get-ListeningPort` — protocol, port, address, process and the services hosted in that process. A single service names the owner (49668 → `Spooler`); a list ending in `(shared)` is everything in a shared svchost, of which only one owns the port — infer which from the port (500/4500 → IKEEXT) and say it is inferred. Without the helpers:
+With the helpers loaded: `Get-NsaListeningPort` — protocol, port, address, process and the services hosted in that process. A single service names the owner (49668 → `Spooler`); a list ending in `(shared)` is everything in a shared svchost, of which only one owns the port — infer which from the port (500/4500 → IKEEXT) and say it is inferred. Without the helpers:
 
 ```powershell
 Get-NetTCPConnection -State Listen |
@@ -47,7 +47,7 @@ netsh advfirewall show currentprofile
 
 **Rules that allow everything** — the one check that matters most. An inbound Allow rule with protocol, local port, remote address, program and service all `Any` makes the firewall a no-op for that profile. Rules with an `Owner` are Store-app (app-container) rules, confined to their package — skip them.
 
-With the helpers loaded: `Find-PermissiveFirewallRule` returns each rule as `AllowsEverything` (a finding of its own), `OpenPort` (a port rule open to any address) or `Icmp` (with the ICMP type; echo `8:0` is usually fine); it takes about half a minute, so tell the user. Without them, the same logic by hand — fetching the filters per rule takes minutes on a machine with hundreds of rules, so fetch them in bulk and fall back per rule only where bulk access was denied (non-elevated consoles cannot read every rule in bulk):
+With the helpers loaded: `Find-NsaPermissiveFirewallRule` returns each rule as `AllowsEverything` (a finding of its own), `OpenPort` (a port rule open to any address) or `Icmp` (with the ICMP type; echo `8:0` is usually fine); it takes about half a minute, so tell the user. Without them, the same logic by hand — fetching the filters per rule takes minutes on a machine with hundreds of rules, so fetch them in bulk and fall back per rule only where bulk access was denied (non-elevated consoles cannot read every rule in bulk):
 
 ```powershell
 $rules = Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow | Where-Object { -not $_.Owner }
@@ -76,7 +76,7 @@ $fwRules | Where-Object { $_.Remote -eq 'Any' -and $_.Program -eq 'Any' -and $_.
     ForEach-Object { '{0} | {1} | {2}/{3}' -f $_.Name, $_.Profile, $_.Protocol, $_.Port }
 ```
 
-A rule limited to one program or service is far less exposed than a bare port rule. To find which rules allow given ports: `Find-PermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap` (matches rules listing several ports too, skips ICMP rules). Look at every profile, not only Public — and at `LocalSubnet` rules as well as `Any`. Finding: a profile disabled, default inbound Allow, an allow-everything rule, port rules open to `Any` on the Public profile. The cross-check with the outside probe tells you whether anything is actually blocked.
+A rule limited to one program or service is far less exposed than a bare port rule. To find which rules allow given ports: `Find-NsaPermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap` (matches rules listing several ports too, skips ICMP rules). Look at every profile, not only Public — and at `LocalSubnet` rules as well as `Any`. Finding: a profile disabled, default inbound Allow, an allow-everything rule, port rules open to `Any` on the Public profile. The cross-check with the outside probe tells you whether anything is actually blocked.
 
 ## Remote access
 
@@ -164,7 +164,7 @@ try { $null = Get-WinEvent -LogName Security -MaxEvents 1 -ErrorAction Stop; 'Se
 
 If it is not readable, put the logon checks under "Not checked" and skip the rest of this section.
 
-With the helpers loaded, read fields by name — `Get-WinEvent … | Get-WinEventData | Group-Object LogonType, IpAddress, TargetUserName`. Without them, by position (4625: 10 = LogonType, 19 = IpAddress; 4624: 8 and 18):
+With the helpers loaded, read fields by name — `Get-WinEvent … | ConvertFrom-NsaWinEvent | Group-Object LogonType, IpAddress, TargetUserName`. Without them, by position (4625: 10 = LogonType, 19 = IpAddress; 4624: 8 and 18):
 
 ```powershell
 Get-WinEvent -FilterHashtable @{ LogName = 'Security'; Id = 4625; StartTime = (Get-Date).AddDays(-7) } -ErrorAction SilentlyContinue |

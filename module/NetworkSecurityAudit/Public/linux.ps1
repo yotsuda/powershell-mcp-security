@@ -1,6 +1,6 @@
 # NetworkSecurityAudit — Linux.
 
-function Get-SysctlEffective {
+function Get-NsaSysctl {
     <#
     .SYNOPSIS
     Computes the value the kernel actually uses for the redirect / source-route / rp_filter /
@@ -14,7 +14,7 @@ function Get-SysctlEffective {
       IPv6 accept_redirects     iface only (ignored while the interface forwards);
                                 'default' only reaches interfaces created later
     #>
-    Assert-Platform 'Get-SysctlEffective' $IsLinux 'Linux'
+    Assert-Platform 'Get-NsaSysctl' $IsLinux 'Linux'
     $read = { param($p) $v = Get-Content $p -ErrorAction SilentlyContinue; if ($null -ne $v) { [int]$v } }
     $v4 = '/proc/sys/net/ipv4/conf'; $v6 = '/proc/sys/net/ipv6/conf'
     $ifaces = Get-ChildItem $v4 -Directory | Where-Object Name -notin 'all', 'default', 'lo' | ForEach-Object Name
@@ -60,7 +60,7 @@ function Get-SysctlEffective {
     }
 }
 
-function Compare-SysctlConfig {
+function Compare-NsaSysctlConfig {
     <#
     .SYNOPSIS
     Compares the merged sysctl configuration (systemd-sysctl --cat-config, last file wins)
@@ -74,7 +74,7 @@ function Compare-SysctlConfig {
     dot in the name (VLANs such as eth0.100): the dot cannot be told from a separator.
     #>
     param([switch]$All)
-    Assert-Platform 'Compare-SysctlConfig' $IsLinux 'Linux'
+    Assert-Platform 'Compare-NsaSysctlConfig' $IsLinux 'Linux'
     $norm = { param($k) ($k.Trim() -replace '^-', '') -replace '/', '.' }
     $conf = [ordered]@{}; $file = ''
     $cat = '/usr/lib/systemd/systemd-sysctl'
@@ -120,7 +120,7 @@ function Compare-SysctlConfig {
     }
 }
 
-function Get-SshAuthSummary {
+function Get-NsaSshLogin {
     <#
     .SYNOPSIS
     Summarizes sshd authentication from the journal: one line per result, method, user,
@@ -128,7 +128,7 @@ function Get-SshAuthSummary {
     near-identical log lines. Reading the journal usually needs root: use -Sudo.
     #>
     param([int]$Days = 7, [switch]$Sudo)
-    Assert-Platform 'Get-SshAuthSummary' $IsLinux 'Linux'
+    Assert-Platform 'Get-NsaSshLogin' $IsLinux 'Linux'
     $jargs = @('-u', 'ssh', '-u', 'sshd', '--since', "-$Days days", '--no-pager', '-o', 'short-iso')
     $lines = if ($Sudo) { sudo -n journalctl @jargs } else { journalctl @jargs }
     $events = foreach ($l in $lines) {
@@ -151,7 +151,7 @@ function Get-SshAuthSummary {
     } | Sort-Object Result, @{ Expression = 'Count'; Descending = $true }
 }
 
-function Get-SshAuthorizedKey {
+function Get-NsaSshAuthorizedKey {
     <#
     .SYNOPSIS
     Lists the keys in authorized_keys and authorized_keys2 under /root and /home/* with type,
@@ -160,9 +160,9 @@ function Get-SshAuthorizedKey {
     Homes elsewhere and other AuthorizedKeysFile paths (see `sshd -T`) are not covered.
     #>
     param([int]$Days = 7)
-    Assert-Platform 'Get-SshAuthorizedKey' $IsLinux 'Linux'
+    Assert-Platform 'Get-NsaSshAuthorizedKey' $IsLinux 'Linux'
     $used = @{}
-    Get-SshAuthSummary -Days $Days -Sudo | Where-Object { $_.Result -eq 'Accepted' -and $_.Key } |
+    Get-NsaSshLogin -Days $Days -Sudo | Where-Object { $_.Result -eq 'Accepted' -and $_.Key } |
         ForEach-Object { if (-not $used[$_.Key] -or $_.Last -gt $used[$_.Key]) { $used[$_.Key] = $_.Last } }
     $files = sudo -n sh -c 'ls -1 /root/.ssh/authorized_keys /root/.ssh/authorized_keys2 /home/*/.ssh/authorized_keys /home/*/.ssh/authorized_keys2 2>/dev/null'
     foreach ($file in $files) {

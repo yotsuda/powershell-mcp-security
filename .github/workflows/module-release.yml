@@ -69,8 +69,8 @@ jobs:
           Import-Module '${{ steps.stage.outputs.stage }}' -Force
           $m = Get-Module NetworkSecurityAudit
           if ($m.Version.ToString() -ne '${{ steps.ver.outputs.version }}') { throw "Loaded $($m.Version)" }
-          $r = Test-TcpPort 127.0.0.1 -Port 1
-          if ($r.State -ne 'Closed') { throw "Test-TcpPort returned $($r.State)" }
+          $r = Test-NsaTcpPort 127.0.0.1 -Port 1
+          if ($r.State -ne 'Closed') { throw "Test-NsaTcpPort returned $($r.State)" }
           Write-Host "NetworkSecurityAudit $($m.Version): $($m.ExportedFunctions.Keys -join ', ')"
 
       - name: Publish to the PowerShell Gallery

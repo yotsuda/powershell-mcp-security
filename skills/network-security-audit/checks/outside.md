@@ -13,7 +13,7 @@ Probe ports 1–1024, every port found listening inside, and common higher ones.
 With the NetworkSecurityAudit module imported on this machine (see SKILL.md):
 
 ```powershell
-Test-TcpPort <target> -Port ((1..1024) + 1433, 3306, 3389, 5432, 5900, 5985, 5986, 6379, 8000, 8080, 8443, 9200, 27017 + <ports found inside>) -Responding
+Test-NsaTcpPort <target> -Port ((1..1024) + 1433, 3306, 3389, 5432, 5900, 5985, 5986, 6379, 8000, 8080, 8443, 9200, 27017 + <ports found inside>) -Responding
 ```
 
 `Open` is reachable; `Closed` means the host answered with a reset (no firewall dropped it); `Filtered` means no answer — usually a firewall. **A Windows target with its firewall on never answers closed ports (stealth mode)**, even ports a rule allows: there `Filtered` does not mean "blocked". To claim the firewall blocks something, show a port that is listening inside and still not reachable. It also takes scoped IPv6 addresses (`fe80::…%<ifIndex>`) as they are. From a Windows machine a refused connection takes about 2 seconds to surface, which is why the default timeout there is 2.5 s. Without the helpers:
@@ -30,7 +30,7 @@ $ports | ForEach-Object -ThrottleLimit 128 -Parallel {
 
 If `nmap` is installed and the user agrees, `nmap -Pn -sT -p- <target>` covers all ports. Say in the report which ports were covered.
 
-**IPv6** — firewall rules for IPv6 are often forgotten. If the target has a global IPv6 address, run the same probe against it. If it has only a link-local address (`fe80::…`) and this machine is on the same link (the Hyper-V host, the same LAN segment), probe that with the zone index of this machine's interface: `fe80::…%<ifIndex>` (`Get-NetIPAddress -AddressFamily IPv6` shows the index). **Positive control first:** a failed TCP connect cannot tell "dropped by a firewall" from "no route". Make `Test-Connection 'fe80::…%<ifIndex>' -Count 1` succeed (ufw lets ICMPv6 echo through) before you read a closed port as blocked — in its own call: put in one call with `Test-TcpPort`, the second table may not be shown. If neither works, say so under "Not checked". A scoped address needs an IPv6 socket and a parsed address:
+**IPv6** — firewall rules for IPv6 are often forgotten. If the target has a global IPv6 address, run the same probe against it. If it has only a link-local address (`fe80::…`) and this machine is on the same link (the Hyper-V host, the same LAN segment), probe that with the zone index of this machine's interface: `fe80::…%<ifIndex>` (`Get-NetIPAddress -AddressFamily IPv6` shows the index). **Positive control first:** a failed TCP connect cannot tell "dropped by a firewall" from "no route". Make `Test-Connection 'fe80::…%<ifIndex>' -Count 1` succeed (ufw lets ICMPv6 echo through) before you read a closed port as blocked — in its own call: put in one call with `Test-NsaTcpPort`, the second table may not be shown. If neither works, say so under "Not checked". A scoped address needs an IPv6 socket and a parsed address:
 
 ```powershell
 $addr = [System.Net.IPAddress]::Parse('fe80::…%<ifIndex>')
@@ -97,8 +97,8 @@ Check this machine's LAN profile too: `Get-NetConnectionProfile`. If the LAN int
 
 For each port that is reachable, collect the evidence for a fix on the host side — on **this machine**, where the module is already imported:
 
-- what listens: `Get-ListeningPort` (or `Get-NetTCPConnection -LocalPort <port> -State Listen`);
-- which rule lets it in: `Find-PermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap` (every profile, `Any` and `LocalSubnet` alike).
+- what listens: `Get-NsaListeningPort` (or `Get-NetTCPConnection -LocalPort <port> -State Listen`);
+- which rule lets it in: `Find-NsaPermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap` (every profile, `Any` and `LocalSubnet` alike).
 
 `vEthernet (Default Switch)` has no network profile (it is missing from `Get-NetConnectionProfile`), so this machine's firewall treats traffic from guests as **Public**: its Public rules are the ones that apply. Rules often found: `File and Printer Sharing (Restrictive) (SMB-In)` (a rule group added in Windows 11 24H2; seen enabled for Private and Public, remote Any, on a host with a shared folder, probably turned on when the folder was shared), `Hyper-V (RPC-EPMAP)`, `Windows Remote Management (HTTP-In)` (Public, LocalSubnet — which includes the guest's subnet).
 

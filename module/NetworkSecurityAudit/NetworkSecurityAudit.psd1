@@ -8,14 +8,14 @@
     PowerShellVersion    = '7.4'
     CompatiblePSEditions = @('Core')
     FunctionsToExport    = @(
-        'Test-TcpPort'
-        'Get-ListeningPort'
-        'Find-PermissiveFirewallRule'
-        'Get-WinEventData'
-        'Get-SysctlEffective'
-        'Compare-SysctlConfig'
-        'Get-SshAuthSummary'
-        'Get-SshAuthorizedKey'
+        'Test-NsaTcpPort'
+        'Get-NsaListeningPort'
+        'Find-NsaPermissiveFirewallRule'
+        'ConvertFrom-NsaWinEvent'
+        'Get-NsaSysctl'
+        'Compare-NsaSysctlConfig'
+        'Get-NsaSshLogin'
+        'Get-NsaSshAuthorizedKey'
     )
     CmdletsToExport      = @()
     VariablesToExport    = @()

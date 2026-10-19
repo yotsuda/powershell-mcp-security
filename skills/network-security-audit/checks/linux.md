@@ -27,7 +27,7 @@ Note the start time: at the end, `sudo journalctl _COMM=sudo --since <start>` li
 sudo ss -tulpn
 ```
 
-(Or `Get-ListeningPort -Sudo` if you loaded the helpers — it adds the systemd unit of each process and leaves out loopback.) List every socket not bound to `127.0.0.0/8` or `::1`. For each, note the process and whether the user expects it. On Ubuntu 24.04, `systemd` holding the same socket as sshd is normal (socket activation of ssh.socket).
+(Or `Get-NsaListeningPort -Sudo` if you loaded the helpers — it adds the systemd unit of each process and leaves out loopback.) List every socket not bound to `127.0.0.0/8` or `::1`. For each, note the process and whether the user expects it. On Ubuntu 24.04, `systemd` holding the same socket as sshd is normal (socket activation of ssh.socket).
 
 ## Host firewall
 
@@ -124,7 +124,7 @@ sysctl -a 2>$null | Select-String '\.conf\.(?!lo\.)[^.]+\.(accept_redirects|send
 | IPv6 `accept_redirects` | **interface only** — `all` has no effect; `default` applies to interfaces created later | 0 on each interface and `default` |
 | `ip_forward` / `tcp_syncookies` | global | 0 / 1 |
 
-With the helpers loaded, `Get-SysctlEffective` applies these rules per interface (no root needed) and `Compare-SysctlConfig` does the comparison below.
+With the helpers loaded, `Get-NsaSysctl` applies these rules per interface (no root needed) and `Compare-NsaSysctlConfig` does the comparison below.
 
 So `net.ipv6.conf.all.accept_redirects = 0` with `net.ipv6.conf.eth0.accept_redirects = 1` means eth0 **does** accept IPv6 redirects; `net.ipv4.conf.eth0.accept_source_route = 1` with `all = 0` is harmless. Typical on Hyper-V and cloud VMs: the NIC exists before systemd-sysctl runs at boot, so a `default = 0` line never reaches it — only a line naming the interface does.
 
@@ -171,7 +171,7 @@ if (Get-Command getenforce -ErrorAction Ignore) { getenforce }   # SELinux (abse
 
 ## Authentication history
 
-Summarize instead of listing — 50 near-identical lines help nobody. With the helpers loaded, `Get-SshAuthSummary -Sudo` (counts with first and last time) and `Get-SshAuthorizedKey` (each key with its last login) do the following in one call each. Without them:
+Summarize instead of listing — 50 near-identical lines help nobody. With the helpers loaded, `Get-NsaSshLogin -Sudo` (counts with first and last time) and `Get-NsaSshAuthorizedKey` (each key with its last login) do the following in one call each. Without them:
 
 ```
 sudo journalctl -u ssh -u sshd --since "-7 days" --no-pager | Select-String 'Failed \S+ for (invalid user )?(\S+) from (\S+)|Invalid user (\S+) from (\S+)' | ForEach-Object { $_.Matches[0].Value -replace ' port.*' } | Group-Object | Sort-Object Count -Descending | Select-Object -First 20 Count, Name

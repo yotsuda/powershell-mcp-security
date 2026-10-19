@@ -1,6 +1,6 @@
 # NetworkSecurityAudit — any OS.
 
-function Test-TcpPort {
+function Test-NsaTcpPort {
     <#
     .SYNOPSIS
     Probes TCP ports in parallel. State is Open (connected), Closed (refused — the host
@@ -11,9 +11,9 @@ function Test-TcpPort {
     .PARAMETER Responding
     Return only ports that answered (Open or Closed) — leaves out Filtered.
     .EXAMPLE
-    Test-TcpPort 192.0.2.10 -Port ((1..1024) + 42777) -Open
+    Test-NsaTcpPort 192.0.2.10 -Port ((1..1024) + 42777) -Open
     .EXAMPLE
-    Test-TcpPort 'fe80::1234:5678:9abc:def0%30' -Port 22, 42777
+    Test-NsaTcpPort 'fe80::1234:5678:9abc:def0%30' -Port 22, 42777
     .NOTES
     Windows retries the SYN before reporting a refused connection, so from a Windows machine
     a closed port takes about 2 seconds to show as Closed; with a shorter timeout it shows as
@@ -53,7 +53,7 @@ function Test-TcpPort {
     else { $result }
 }
 
-function Get-ListeningPort {
+function Get-NsaListeningPort {
     <#
     .SYNOPSIS
     Lists listening TCP and UDP sockets with process and service. Exposed = bound to

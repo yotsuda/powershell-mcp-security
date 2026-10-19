@@ -24,11 +24,11 @@ The PowerShell module **NetworkSecurityAudit** holds functions that encode check
 
 | Runs on | Functions |
 |---|---|
-| any OS | `Test-TcpPort` (parallel probe: Open / Closed / Filtered), `Get-ListeningPort` (with service or systemd unit) |
-| Windows | `Find-PermissiveFirewallRule`, `Get-WinEventData` |
-| Linux | `Get-SysctlEffective`, `Compare-SysctlConfig` (configured vs effective, ufw), `Get-SshAuthSummary`, `Get-SshAuthorizedKey` (with last use) |
+| any OS | `Test-NsaTcpPort` (parallel probe: Open / Closed / Filtered), `Get-NsaListeningPort` (with service or systemd unit) |
+| Windows | `Find-NsaPermissiveFirewallRule`, `ConvertFrom-NsaWinEvent` |
+| Linux | `Get-NsaSysctl`, `Compare-NsaSysctlConfig` (configured vs effective, ufw), `Get-NsaSshLogin`, `Get-NsaSshAuthorizedKey` (with last use) |
 
-- **This machine**: import the copy that ships with this plugin — `Import-Module '<skill dir>/../../module/NetworkSecurityAudit'`. Always do this for the outside checks; `Test-TcpPort` is the one most worth having.
+- **This machine**: import the copy that ships with this plugin — `Import-Module '<skill dir>/../../module/NetworkSecurityAudit'`. Always do this for the outside checks; `Test-NsaTcpPort` is the one most worth having.
 - **The remote target**: optional, and only with the user's approval, since it puts code on their machine. Say so in one sentence. Either way it goes to a temporary folder — nothing is installed, and the folder is removed at cleanup. Pick the first way that works:
   1. **Copy the bundled module over SSH** — when this machine can already log in to the target with SSH (typical for Linux and macOS servers): from this machine, `scp -r '<skill dir>/../../module/NetworkSecurityAudit' <user>@<target>:/tmp/`, then on the target `Import-Module /tmp/NetworkSecurityAudit`. Use the key the user logs in with, and `-o BatchMode=yes` so it fails instead of prompting.
   2. **Fetch it from the PowerShell Gallery** — when the target can reach the Internet:
@@ -37,7 +37,7 @@ The PowerShell module **NetworkSecurityAudit** holds functions that encode check
      ```
   3. Otherwise — no SSH from here (Windows usually has none, nor does a target that dialed in from behind NAT) and no Internet, or the user declines — use the plain commands in the check files.
 
-  Worth it on a **Windows** target, where `Find-PermissiveFirewallRule` replaces a long and error-prone manual check; on Linux the plain commands are enough, and the module saves work when the logs or sysctl settings are large. At cleanup: `Remove-Module NetworkSecurityAudit`, then remove the temporary folder.
+  Worth it on a **Windows** target, where `Find-NsaPermissiveFirewallRule` replaces a long and error-prone manual check; on Linux the plain commands are enough, and the module saves work when the logs or sysctl settings are large. At cleanup: `Remove-Module NetworkSecurityAudit`, then remove the temporary folder.
 - `Get-Help <function>` shows what each returns. If a function fails, fall back to the plain commands in the check files and note it in the feedback.
 
 When you are done, remind the user how to clean up: remote control stays open until they run `Disable-MCPRemoteControl` or close the console there, and on Linux/macOS `sudo -k` drops the cached sudo credentials.

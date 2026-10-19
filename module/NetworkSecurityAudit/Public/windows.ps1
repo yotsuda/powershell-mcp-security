@@ -1,6 +1,6 @@
 # NetworkSecurityAudit — Windows.
 
-function Find-PermissiveFirewallRule {
+function Find-NsaPermissiveFirewallRule {
     <#
     .SYNOPSIS
     Reads the ACTIVE firewall policy and returns enabled inbound Allow rules that are open
@@ -23,10 +23,10 @@ function Find-PermissiveFirewallRule {
     check them by the listening process. ICMP rules are never matched (their Port shows ICMP
     types).
     .EXAMPLE
-    Find-PermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap
+    Find-NsaPermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap
     #>
     param([switch]$All, [string[]]$Port)
-    Assert-Platform 'Find-PermissiveFirewallRule' $IsWindows 'Windows'
+    Assert-Platform 'Find-NsaPermissiveFirewallRule' $IsWindows 'Windows'
     $allRules = @(Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow)
     $rules = @($allRules | Where-Object { -not $_.Owner })
     # Bulk reads are fast; a non-elevated console is denied some rules in bulk, so fall back per rule.
@@ -74,10 +74,10 @@ function Find-PermissiveFirewallRule {
         }
         if ($All -or $o.Kind) { $o }
     }
-    Write-Host "Find-PermissiveFirewallRule: $($rules.Count) enabled inbound Allow rules checked ($($allRules.Count - $rules.Count) store-app rules skipped)."
+    Write-Host "Find-NsaPermissiveFirewallRule: $($rules.Count) enabled inbound Allow rules checked ($($allRules.Count - $rules.Count) store-app rules skipped)."
 }
 
-function Get-WinEventData {
+function ConvertFrom-NsaWinEvent {
     <#
     .SYNOPSIS
     Expands an event's EventData into named properties, so fields are read by name
@@ -86,7 +86,7 @@ function Get-WinEventData {
     Data elements become Data0, Data1, …
     .EXAMPLE
     Get-WinEvent -FilterHashtable @{ LogName = 'Security'; Id = 4625; StartTime = (Get-Date).AddDays(-7) } |
-        Get-WinEventData | Group-Object LogonType, IpAddress, TargetUserName | Select-Object Count, Name
+        ConvertFrom-NsaWinEvent | Group-Object LogonType, IpAddress, TargetUserName | Select-Object Count, Name
     #>
     param([Parameter(Mandatory, ValueFromPipeline)][Alias('Event')][System.Diagnostics.Eventing.Reader.EventRecord]$EventRecord)
     process {
