@@ -53,7 +53,7 @@ When you are done, remind the user how to clean up: remote control stays open un
 4. **Secrets stay with the human.** Never ask for a password in the chat. When `sudo` needs one, the person types it at the target's console. Leave password changes (`passwd`, account passwords) to the user — tell them what to run.
 5. **Elevation on request.** Start without admin rights. When a check needs them, say which check and why, then:
    - Linux/macOS: first run `sudo -n true`. If it succeeds, either the rules say NOPASSWD or a recent password is still cached — the Privilege check (`sudo -l`) tells which; do not assume. If it fails, a password is needed: tell the user a password prompt is about to appear at the target's console, then run `sudo -v` (allow a long timeout; if it times out, `wait_for_remote_completion` until they have typed it). After that, send every privileged command as `sudo -n …` so it fails instead of hanging if the credentials expire — then repeat `sudo -v`.
-   - Windows: ask the user to open PowerShell 7 as Administrator there and run `Enable-MCPRemoteControl` again, then reconnect with the new code.
+   - Windows: ask the user to end remote control in the current console first (`Disable-MCPRemoteControl`, or close it — while it is still on, remote control cannot start in a second console), then open PowerShell 7 as Administrator there and run `Enable-MCPRemoteControl` (or the `-ConnectTo` line) again, and give you the new code; reconnect with it.
 6. **Say what you could not check** (no permission, tool missing, ambiguous result). A gap you name is better than a pass you assumed.
 
 ## Phase 1 — Audit (read-only)
