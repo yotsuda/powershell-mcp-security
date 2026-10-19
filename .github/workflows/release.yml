@@ -1,13 +1,16 @@
-name: Module release
+name: Release
 
-# Push a tag `NetworkSecurityAudit-vX.Y.Z` to publish NetworkSecurityAudit X.Y.Z to the PowerShell Gallery.
-# The manifest's ModuleVersion must equal X.Y.Z, and its ReleaseNotes become the GitHub Release notes.
-# Needs the repository secret PSGALLERY_API_KEY.
+# One version for the whole repository: push a tag `vX.Y.Z` on a commit of main to release X.Y.Z.
+#   - .claude-plugin/plugin.json `version` and the module manifest's ModuleVersion must both equal X.Y.Z,
+#     and the manifest's ReleaseNotes become the GitHub Release notes.
+#   - Publishes NetworkSecurityAudit X.Y.Z to the PowerShell Gallery (secret PSGALLERY_API_KEY),
+#     then fast-forwards the `release` branch to the tag. The marketplace serves the plugin from `release`,
+#     so users only ever get tagged commits, and the module bundled in the plugin is the one on the Gallery.
 
 on:
   push:
     tags:
-      - 'NetworkSecurityAudit-v*.*.*'
+      - 'v*.*.*'
 
 jobs:
   test:
@@ -20,24 +23,28 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Derive version from tag
         id: ver
         shell: pwsh
         run: |
           $tag = "$env:GITHUB_REF_NAME"
-          "version=$($tag -replace '^NetworkSecurityAudit-v', '')" | Out-File $env:GITHUB_OUTPUT -Append
+          "version=$($tag -replace '^v', '')" | Out-File $env:GITHUB_OUTPUT -Append
           "tag=$tag" | Out-File $env:GITHUB_OUTPUT -Append
 
-      - name: Check the manifest against the tag (fail fast)
+      - name: Check versions against the tag (fail fast)
         id: notes
         shell: pwsh
         run: |
           $expected = '${{ steps.ver.outputs.version }}'
           $data = Import-PowerShellDataFile module/NetworkSecurityAudit/NetworkSecurityAudit.psd1
-          if ($data.ModuleVersion -ne $expected) {
-            throw "ModuleVersion $($data.ModuleVersion) != tag $expected"
-          }
+          if ($data.ModuleVersion -ne $expected) { throw "ModuleVersion $($data.ModuleVersion) != tag $expected" }
+          $plugin = (Get-Content .claude-plugin/plugin.json -Raw | ConvertFrom-Json).version
+          if ($plugin -ne $expected) { throw "plugin.json version $plugin != tag $expected" }
+          git merge-base --is-ancestor HEAD origin/main
+          if ($LASTEXITCODE -ne 0) { throw 'The tag must be on a commit of main.' }
           $notes = $data.PrivateData.PSData.ReleaseNotes
           if ([string]::IsNullOrWhiteSpace($notes)) { throw 'PrivateData.PSData.ReleaseNotes is empty.' }
           $path = Join-Path $env:RUNNER_TEMP 'release-notes.md'
@@ -49,7 +56,16 @@ jobs:
         run: |
           $v = '${{ steps.ver.outputs.version }}'
           if (Find-PSResource NetworkSecurityAudit -Version $v -Repository PSGallery -ErrorAction SilentlyContinue) {
-            throw "NetworkSecurityAudit $v is already published. Raise ModuleVersion and tag again."
+            throw "NetworkSecurityAudit $v is already published. Raise the version and tag again."
+          }
+
+      - name: Check that release can be fast-forwarded (before publishing)
+        shell: pwsh
+        run: |
+          git ls-remote --exit-code --heads origin release *> $null
+          if ($LASTEXITCODE -eq 0) {
+            git merge-base --is-ancestor origin/release HEAD
+            if ($LASTEXITCODE -ne 0) { throw 'release has commits that are not in this tag; it cannot be fast-forwarded.' }
           }
 
       - name: Assemble the package
@@ -81,7 +97,10 @@ jobs:
           if ([string]::IsNullOrEmpty($env:PSGALLERY_API_KEY)) { throw 'The secret PSGALLERY_API_KEY is not set.' }
           Publish-PSResource -Path '${{ steps.stage.outputs.stage }}' -Repository PSGallery -ApiKey $env:PSGALLERY_API_KEY -Verbose
 
+      - name: Move the release branch to the tag
+        run: git push origin "${GITHUB_SHA}:refs/heads/release"
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "${{ steps.ver.outputs.tag }}" --title "NetworkSecurityAudit ${{ steps.ver.outputs.version }}" --notes-file "${{ steps.notes.outputs.notes_path }}"
+        run: gh release create "${{ steps.ver.outputs.tag }}" --title "${{ steps.ver.outputs.tag }}" --notes-file "${{ steps.notes.outputs.notes_path }}"

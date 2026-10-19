@@ -26,7 +26,11 @@ The helper functions live in the PowerShell module `module/NetworkSecurityAudit/
 - **Returning objects**, not formatted text.
 - **Tested on the OS it targets**, through a PowerShell.MCP remote console, with the version noted in the PR.
 
-Run the tests with `Invoke-Pester module/tests`, on each OS the change touches. CI runs them on Windows and Linux for every push and PR that touches `module/`. Maintainers release the module by raising `ModuleVersion` and `ReleaseNotes` in the manifest and pushing a tag `NetworkSecurityAudit-vX.Y.Z`; the release workflow tests, publishes to the PowerShell Gallery and creates a GitHub Release.
+Run the tests with `Invoke-Pester module/tests`, on each OS the change touches. CI runs them on Windows and Linux for every push and PR that touches `module/`. 
+
+## Releases
+
+The skill and the module share one version number and are released together. Pushes to `main` do not reach users: the marketplace serves the plugin from the `release` branch. To release X.Y.Z, a maintainer sets `version` in `.claude-plugin/plugin.json` and `ModuleVersion` and `ReleaseNotes` in the module manifest to X.Y.Z, and pushes a tag `vX.Y.Z` on that commit of `main`. The release workflow tests, publishes the module to the PowerShell Gallery, moves `release` to the tag and creates a GitHub Release — so the module bundled in a released plugin is always the one on the Gallery with the same version.
 
 ## Adding or changing a fix
 
