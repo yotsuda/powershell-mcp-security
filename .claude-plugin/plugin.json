@@ -1,6 +1,6 @@
 {
   "name": "powershell-mcp-security",
-  "version": "0.17.2",
+  "version": "0.18.0",
   "description": "With PowerShell.MCP, audit and harden the network security of a Windows, Linux or macOS machine: read-only audit inside and outside, lockout-safe fixes with approval, verification after reboot.",
   "author": { "name": "Yoshifumi Tsuda" },
   "homepage": "https://github.com/yotsuda/powershell-mcp-security",

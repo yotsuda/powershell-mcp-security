@@ -19,14 +19,14 @@ Real stories are especially welcome: "this setting was overridden by X and only 
 
 ## Adding or changing a helper function
 
-Helpers in `skills/network-security-audit/scripts/` encode rules that are easy to get wrong by hand. Keep them:
+The helper functions live in the PowerShell module `module/NetworkSecurityAudit/` (published to the PowerShell Gallery), with Pester tests in `module/tests/`. They encode rules that are easy to get wrong by hand. Keep them:
 
 - **Read-only.** A helper never changes the target.
-- **Self-contained and global** (`function global:Verb-Noun`), with comment-based help that says what it returns and which rule it applies.
+- **Exported and documented**: listed in `FunctionsToExport` of the manifest, with comment-based help that says what it returns and which rule it applies. OS-specific functions start with `Assert-Platform`.
 - **Returning objects**, not formatted text.
 - **Tested on the OS it targets**, through a PowerShell.MCP remote console, with the version noted in the PR.
 
-They are written so they can later move into a PowerShell module on the Gallery without changing their interface.
+Run the tests with `Invoke-Pester module/tests`, on each OS the change touches.
 
 ## Adding or changing a fix
 

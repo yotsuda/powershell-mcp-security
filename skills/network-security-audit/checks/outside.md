@@ -10,7 +10,7 @@ Run these on the machine **you** run on, against the target's address only. They
 
 Probe ports 1–1024, every port found listening inside, and common higher ones. Connections run in parallel, so this takes 15–30 seconds even when a firewall drops packets (tell the user before you start).
 
-With the helpers loaded (`scripts/common.ps1` on this machine):
+With the NetworkSecurityAudit module imported on this machine (see SKILL.md):
 
 ```powershell
 Test-TcpPort <target> -Port ((1..1024) + 1433, 3306, 3389, 5432, 5900, 5985, 5986, 6379, 8000, 8080, 8443, 9200, 27017 + <ports found inside>) -Responding
@@ -95,7 +95,7 @@ The two addresses can give different answers (e.g. 139 reachable on the LAN addr
 
 Check this machine's LAN profile too: `Get-NetConnectionProfile`. If the LAN interface (Wi-Fi, Ethernet) is **Public**, a rule enabled for Public with remote `Any` — e.g. `File and Printer Sharing (Restrictive) (SMB-In)` — opens this machine to everyone on that network, not only to guests: on a café or hotel Wi-Fi, to strangers. Report it as its own host-side finding (High on a network the user does not control), and say it was inferred from the rules and not tested from another machine on that network.
 
-For each port that is reachable, collect the evidence for a fix on the host side — on **this machine**, where the helper files work just as well (`. <skill dir>/scripts/common.ps1` and `windows.ps1`):
+For each port that is reachable, collect the evidence for a fix on the host side — on **this machine**, where the module is already imported:
 
 - what listens: `Get-ListeningPort` (or `Get-NetTCPConnection -LocalPort <port> -State Listen`);
 - which rule lets it in: `Find-PermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap` (every profile, `Any` and `LocalSubnet` alike).

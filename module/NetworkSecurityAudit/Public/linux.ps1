@@ -1,8 +1,6 @@
-# Helpers for the network-security-audit skill — Linux targets.
-# Functions are defined in the global scope so they survive between PowerShell.MCP calls.
-# Load remotely: pass this file's text as one of var1, var2 … and run  . ([scriptblock]::Create($var<N>))
+# NetworkSecurityAudit — Linux.
 
-function global:Get-SysctlEffective {
+function Get-SysctlEffective {
     <#
     .SYNOPSIS
     Computes the value the kernel actually uses for the redirect / source-route / rp_filter /
@@ -16,6 +14,7 @@ function global:Get-SysctlEffective {
       IPv6 accept_redirects     iface only (ignored while the interface forwards);
                                 'default' only reaches interfaces created later
     #>
+    Assert-Platform 'Get-SysctlEffective' $IsLinux 'Linux'
     $read = { param($p) $v = Get-Content $p -ErrorAction SilentlyContinue; if ($null -ne $v) { [int]$v } }
     $v4 = '/proc/sys/net/ipv4/conf'; $v6 = '/proc/sys/net/ipv6/conf'
     $ifaces = Get-ChildItem $v4 -Directory | Where-Object Name -notin 'all', 'default', 'lo' | ForEach-Object Name
@@ -61,7 +60,7 @@ function global:Get-SysctlEffective {
     }
 }
 
-function global:Compare-SysctlConfig {
+function Compare-SysctlConfig {
     <#
     .SYNOPSIS
     Compares the merged sysctl configuration (systemd-sysctl --cat-config, last file wins)
@@ -75,6 +74,7 @@ function global:Compare-SysctlConfig {
     dot in the name (VLANs such as eth0.100): the dot cannot be told from a separator.
     #>
     param([switch]$All)
+    Assert-Platform 'Compare-SysctlConfig' $IsLinux 'Linux'
     $norm = { param($k) ($k.Trim() -replace '^-', '') -replace '/', '.' }
     $conf = [ordered]@{}; $file = ''
     $cat = '/usr/lib/systemd/systemd-sysctl'
@@ -120,7 +120,7 @@ function global:Compare-SysctlConfig {
     }
 }
 
-function global:Get-SshAuthSummary {
+function Get-SshAuthSummary {
     <#
     .SYNOPSIS
     Summarizes sshd authentication from the journal: one line per result, method, user,
@@ -128,6 +128,7 @@ function global:Get-SshAuthSummary {
     near-identical log lines. Reading the journal usually needs root: use -Sudo.
     #>
     param([int]$Days = 7, [switch]$Sudo)
+    Assert-Platform 'Get-SshAuthSummary' $IsLinux 'Linux'
     $jargs = @('-u', 'ssh', '-u', 'sshd', '--since', "-$Days days", '--no-pager', '-o', 'short-iso')
     $lines = if ($Sudo) { sudo -n journalctl @jargs } else { journalctl @jargs }
     $events = foreach ($l in $lines) {
@@ -150,7 +151,7 @@ function global:Get-SshAuthSummary {
     } | Sort-Object Result, @{ Expression = 'Count'; Descending = $true }
 }
 
-function global:Get-SshAuthorizedKey {
+function Get-SshAuthorizedKey {
     <#
     .SYNOPSIS
     Lists the keys in authorized_keys and authorized_keys2 under /root and /home/* with type,
@@ -159,6 +160,7 @@ function global:Get-SshAuthorizedKey {
     Homes elsewhere and other AuthorizedKeysFile paths (see `sshd -T`) are not covered.
     #>
     param([int]$Days = 7)
+    Assert-Platform 'Get-SshAuthorizedKey' $IsLinux 'Linux'
     $used = @{}
     Get-SshAuthSummary -Days $Days -Sudo | Where-Object { $_.Result -eq 'Accepted' -and $_.Key } |
         ForEach-Object { if (-not $used[$_.Key] -or $_.Last -gt $used[$_.Key]) { $used[$_.Key] = $_.Last } }

@@ -20,16 +20,20 @@ Native commands (`ss`, `sshd -T`, `ufw`, `netsh` …) run as they are in PowerSh
 
 ## Helper functions
 
-[scripts/](scripts) holds PowerShell functions that encode checks which are easy to get wrong by hand. They are defined in the global scope, so they stay available for the rest of the session once loaded:
+The PowerShell module **NetworkSecurityAudit** holds functions that encode checks which are easy to get wrong by hand. It only reads.
 
-| File | Load into | Functions |
-|---|---|---|
-| [scripts/common.ps1](scripts/common.ps1) | this machine and the target | `Test-TcpPort` (parallel probe: Open / Closed / Filtered), `Get-ListeningPort` (with service or systemd unit) |
-| [scripts/windows.ps1](scripts/windows.ps1) | a Windows target | `Find-PermissiveFirewallRule`, `Get-WinEventData` |
-| [scripts/linux.ps1](scripts/linux.ps1) | a Linux target | `Get-SysctlEffective`, `Compare-SysctlConfig` (configured vs effective, ufw), `Get-SshAuthSummary`, `Get-SshAuthorizedKey` (with last use) |
+| Runs on | Functions |
+|---|---|
+| any OS | `Test-TcpPort` (parallel probe: Open / Closed / Filtered), `Get-ListeningPort` (with service or systemd unit) |
+| Windows | `Find-PermissiveFirewallRule`, `Get-WinEventData` |
+| Linux | `Get-SysctlEffective`, `Compare-SysctlConfig` (configured vs effective, ufw), `Get-SshAuthSummary`, `Get-SshAuthorizedKey` (with last use) |
 
-- **This machine**: dot-source the file from this skill's directory, e.g. `. '<skill dir>/scripts/common.ps1'`. Always do this for the outside checks — `Test-TcpPort` is the one most worth having.
-- **The remote target**: optional. There is no way to send a local file, so you would have to pass the file's **full text, unchanged** (the help is part of them) in one call — e.g. `common.ps1` as `var1` and `windows.ps1` as `var2` of `execute_remote_command`, running `. ([scriptblock]::Create($var1)); . ([scriptblock]::Create($var2))`. That costs a few thousand tokens per file. Worth it on a **Windows** target, where `Find-PermissiveFirewallRule` replaces a long and error-prone manual check; on Linux the plain commands in the check files are enough, and `linux.ps1` saves work mainly when the logs or sysctl settings are large. Nothing is installed; it is gone when the console closes. Tell the user what you are loading (the function names) — they see the call in their console.
+- **This machine**: import the copy that ships with this plugin — `Import-Module '<skill dir>/../../module/NetworkSecurityAudit'`. Always do this for the outside checks; `Test-TcpPort` is the one most worth having.
+- **The remote target**: optional, and only with the user's approval, since it fetches code from the PowerShell Gallery onto their machine. Say so in one sentence, then save it to a temporary folder and import it there — nothing is installed, and the folder is removed at cleanup:
+  ```powershell
+  $nsa = Join-Path ([IO.Path]::GetTempPath()) 'nsa'; Save-PSResource NetworkSecurityAudit -Repository PSGallery -Path $nsa -TrustRepository; Import-Module (Join-Path $nsa NetworkSecurityAudit)
+  ```
+  Worth it on a **Windows** target, where `Find-PermissiveFirewallRule` replaces a long and error-prone manual check; on Linux the plain commands in the check files are enough. If the target cannot reach the Gallery or the user declines, use the plain commands. At cleanup: `Remove-Module NetworkSecurityAudit; Remove-Item -Recurse $nsa`.
 - `Get-Help <function>` shows what each returns. If a function fails, fall back to the plain commands in the check files and note it in the feedback.
 
 When you are done, remind the user how to clean up: remote control stays open until they run `Disable-MCPRemoteControl` or close the console there, and on Linux/macOS `sudo -k` drops the cached sudo credentials.

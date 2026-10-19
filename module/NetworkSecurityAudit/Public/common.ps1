@@ -1,9 +1,6 @@
-# Helpers for the network-security-audit skill — any OS.
-# Functions are defined in the global scope so they survive between PowerShell.MCP calls.
-# Load locally:  . <skill dir>/scripts/common.ps1
-# Load remotely: pass this file's text as one of var1, var2 … and run  . ([scriptblock]::Create($var<N>))
+# NetworkSecurityAudit — any OS.
 
-function global:Test-TcpPort {
+function Test-TcpPort {
     <#
     .SYNOPSIS
     Probes TCP ports in parallel. State is Open (connected), Closed (refused — the host
@@ -56,7 +53,7 @@ function global:Test-TcpPort {
     else { $result }
 }
 
-function global:Get-ListeningPort {
+function Get-ListeningPort {
     <#
     .SYNOPSIS
     Lists listening TCP and UDP sockets with process and service. Exposed = bound to

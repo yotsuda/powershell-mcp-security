@@ -1,8 +1,6 @@
-# Helpers for the network-security-audit skill — Windows targets.
-# Functions are defined in the global scope so they survive between PowerShell.MCP calls.
-# Load remotely: pass this file's text as one of var1, var2 … and run  . ([scriptblock]::Create($var<N>))
+# NetworkSecurityAudit — Windows.
 
-function global:Find-PermissiveFirewallRule {
+function Find-PermissiveFirewallRule {
     <#
     .SYNOPSIS
     Reads the ACTIVE firewall policy and returns enabled inbound Allow rules that are open
@@ -28,6 +26,7 @@ function global:Find-PermissiveFirewallRule {
     Find-PermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap
     #>
     param([switch]$All, [string[]]$Port)
+    Assert-Platform 'Find-PermissiveFirewallRule' $IsWindows 'Windows'
     $allRules = @(Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow)
     $rules = @($allRules | Where-Object { -not $_.Owner })
     # Bulk reads are fast; a non-elevated console is denied some rules in bulk, so fall back per rule.
@@ -78,7 +77,7 @@ function global:Find-PermissiveFirewallRule {
     Write-Host "Find-PermissiveFirewallRule: $($rules.Count) enabled inbound Allow rules checked ($($allRules.Count - $rules.Count) store-app rules skipped)."
 }
 
-function global:Get-WinEventData {
+function Get-WinEventData {
     <#
     .SYNOPSIS
     Expands an event's EventData into named properties, so fields are read by name
