@@ -26,7 +26,7 @@ The helper functions live in the PowerShell module `module/NetworkSecurityAudit/
 - **Returning objects**, not formatted text.
 - **Tested on the OS it targets**, through a PowerShell.MCP remote console, with the version noted in the PR.
 
-Run the tests with `Invoke-Pester module/tests`, on each OS the change touches. CI runs them on Windows and Linux for every push and PR that touches `module/`. Maintainers release the module by raising `ModuleVersion` and `ReleaseNotes` in the manifest and pushing a tag `module-vX.Y.Z`; the release workflow tests, publishes to the PowerShell Gallery and creates a GitHub Release.
+Run the tests with `Invoke-Pester module/tests`, on each OS the change touches. CI runs them on Windows and Linux for every push and PR that touches `module/`. Maintainers release the module by raising `ModuleVersion` and `ReleaseNotes` in the manifest and pushing a tag `NetworkSecurityAudit-vX.Y.Z`; the release workflow tests, publishes to the PowerShell Gallery and creates a GitHub Release.
 
 ## Adding or changing a fix
 

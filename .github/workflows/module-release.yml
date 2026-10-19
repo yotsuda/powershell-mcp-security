@@ -1,13 +1,13 @@
 name: Module release
 
-# Push a tag `module-vX.Y.Z` to publish NetworkSecurityAudit X.Y.Z to the PowerShell Gallery.
+# Push a tag `NetworkSecurityAudit-vX.Y.Z` to publish NetworkSecurityAudit X.Y.Z to the PowerShell Gallery.
 # The manifest's ModuleVersion must equal X.Y.Z, and its ReleaseNotes become the GitHub Release notes.
 # Needs the repository secret PSGALLERY_API_KEY.
 
 on:
   push:
     tags:
-      - 'module-v*.*.*'
+      - 'NetworkSecurityAudit-v*.*.*'
 
 jobs:
   test:
@@ -26,7 +26,7 @@ jobs:
         shell: pwsh
         run: |
           $tag = "$env:GITHUB_REF_NAME"
-          "version=$($tag -replace '^module-v', '')" | Out-File $env:GITHUB_OUTPUT -Append
+          "version=$($tag -replace '^NetworkSecurityAudit-v', '')" | Out-File $env:GITHUB_OUTPUT -Append
           "tag=$tag" | Out-File $env:GITHUB_OUTPUT -Append
 
       - name: Check the manifest against the tag (fail fast)
