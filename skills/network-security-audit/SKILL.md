@@ -29,17 +29,17 @@ The PowerShell module **NetworkSecurityAudit** holds functions that encode check
 | Linux | `Get-NsaSysctl`, `Compare-NsaSysctlConfig` (configured vs effective, ufw), `Get-NsaSshLogin`, `Get-NsaSshAuthorizedKey` (with last use) |
 
 - **This machine**: import the copy that ships with this plugin — `Import-Module '<skill dir>/../../module/NetworkSecurityAudit'`. Always do this for the outside checks; `Test-NsaTcpPort` is the one most worth having.
-- **The remote target**: optional, and only with the user's approval, since it puts code on their machine. Say so in one sentence. Either way it goes to a temporary folder — nothing is installed, and the folder is removed at cleanup. Pick the first way that works:
-  1. **Copy the bundled module over SSH** — when this machine can already log in to the target with SSH (typical for Linux and macOS servers): from this machine, `scp -r '<skill dir>/../../module/NetworkSecurityAudit' <user>@<target>:/tmp/`, then on the target `Import-Module /tmp/NetworkSecurityAudit`. Use the key the user logs in with, and `-o BatchMode=yes` so it fails instead of prompting.
-  2. **Fetch it from the PowerShell Gallery** — when the target can reach the Internet:
-     ```powershell
-     $nsa = Join-Path ([IO.Path]::GetTempPath()) 'nsa'; $null = New-Item -ItemType Directory -Force $nsa; Save-PSResource NetworkSecurityAudit -Repository PSGallery -Path $nsa -TrustRepository; Import-Module (Join-Path $nsa NetworkSecurityAudit)
-     ```
-  3. Otherwise — no SSH from here (Windows usually has none, nor does a target that dialed in from behind NAT) and no Internet, or the user declines — use the plain commands in the check files.
+- **The remote target**: **offer to install it, early** — right after you have identified the target. It is small (a few files of PowerShell, read-only, from the PowerShell Gallery), and audits repeat: installed once, it is there for the next audit too. Ask in one sentence, e.g. "May I install the read-only NetworkSecurityAudit module (PowerShell Gallery, for your user only) there? It makes the Windows firewall and port checks faster and more reliable, and stays for future audits." Do not skip the question to save time: without it, `Find-NsaPermissiveFirewallRule` and `Get-NsaListeningPort` become long, slow and error-prone manual checks (the manual firewall listing misreads ICMP rules; the manual port listing takes half a minute and cannot tell which service in a shared svchost owns a port).
+  - **Yes, and the target reaches the Internet**: `Install-PSResource NetworkSecurityAudit -Repository PSGallery -Scope CurrentUser -TrustRepository`, then `Import-Module NetworkSecurityAudit`. (Not `Install-Module`: its NuGet-provider and untrusted-repository prompts would stop a remote console.) If it is already installed, `Update-PSResource NetworkSecurityAudit -TrustRepository` instead.
+  - **Yes, no Internet, but this machine can log in with SSH** (typical for Linux and macOS servers): copy the bundled copy — `scp -r -o BatchMode=yes '<skill dir>/../../module/NetworkSecurityAudit' <user>@<target>:/tmp/`, then on the target `Import-Module /tmp/NetworkSecurityAudit` (this one is gone at reboot; remove it at cleanup).
+  - **"Only for this audit"**: save it to a temporary folder instead and remove it at cleanup —
+    ```powershell
+    $nsa = Join-Path ([IO.Path]::GetTempPath()) 'nsa'; $null = New-Item -ItemType Directory -Force $nsa; Save-PSResource NetworkSecurityAudit -Repository PSGallery -Path $nsa -TrustRepository; Import-Module (Join-Path $nsa NetworkSecurityAudit)
+    ```
+  - **No, or no way to get it there**: use the plain commands in the check files.
 
-  On a **Windows** target, ask — do not skip it to save a question: `Find-NsaPermissiveFirewallRule` and `Get-NsaListeningPort` replace long, slow and error-prone manual checks (the manual firewall listing misreads ICMP rules; the manual port listing takes half a minute and cannot tell which service in a shared svchost owns a port). On Linux the plain commands are enough, and the module saves work when the logs or sysctl settings are large. At cleanup: `Remove-Module NetworkSecurityAudit`, then remove the temporary folder.
-
-  **A disposable target** (Windows Sandbox, a throwaway VM) is gone when it closes, so installing is harmless there: after a one-line OK, `Install-PSResource NetworkSecurityAudit -Repository PSGallery -TrustRepository` (not `Install-Module`, whose NuGet-provider and untrusted-repository prompts would stop a remote console), and skip the temporary folder.
+  In the report's Cleanup, say whether the module was installed and how to remove it (`Uninstall-PSResource NetworkSecurityAudit`).
+- **PowerShell.MCP on the target**: if the user dialed in with the one-line command and is asked where to install PowerShell 7 and PowerShell.MCP (none / user / machine), mention that audits repeat: `user` (or `machine` for admin work) keeps them, so next time `Enable-MCPRemoteControl` alone is enough. The choice is theirs.
 - `Get-Help <function>` shows what each returns. If a function fails, fall back to the plain commands in the check files and note it in the feedback.
 
 When you are done, remind the user how to clean up: remote control stays open until they run `Disable-MCPRemoteControl` or close the console there, and on Linux/macOS `sudo -k` drops the cached sudo credentials.
