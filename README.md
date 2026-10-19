@@ -8,6 +8,8 @@ A Claude Code skill that audits and hardens the network security of a Windows, L
 
 <img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/fc9c9d41-5cfd-4771-8741-54f344f18617" />
 
+*The robot in the picture is the AI. It actually runs on your machine and drives the console of the target machine directly, over a TLS-encrypted connection. You talk with the AI and watch the commands it runs on the target scroll by in that console. You can also type in the same console yourself.*
+
 ## Requirements
 
 - **Your machine**: Claude Code, PowerShell 7.4+ and PowerShell.MCP 1.16.0 or later. In PowerShell 7:
