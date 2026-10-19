@@ -37,7 +37,9 @@ The PowerShell module **NetworkSecurityAudit** holds functions that encode check
      ```
   3. Otherwise — no SSH from here (Windows usually has none, nor does a target that dialed in from behind NAT) and no Internet, or the user declines — use the plain commands in the check files.
 
-  Worth it on a **Windows** target, where `Find-NsaPermissiveFirewallRule` replaces a long and error-prone manual check; on Linux the plain commands are enough, and the module saves work when the logs or sysctl settings are large. At cleanup: `Remove-Module NetworkSecurityAudit`, then remove the temporary folder.
+  On a **Windows** target, ask — do not skip it to save a question: `Find-NsaPermissiveFirewallRule` and `Get-NsaListeningPort` replace long, slow and error-prone manual checks (the manual firewall listing misreads ICMP rules; the manual port listing takes half a minute and cannot tell which service in a shared svchost owns a port). On Linux the plain commands are enough, and the module saves work when the logs or sysctl settings are large. At cleanup: `Remove-Module NetworkSecurityAudit`, then remove the temporary folder.
+
+  **A disposable target** (Windows Sandbox, a throwaway VM) is gone when it closes, so installing is harmless there: after a one-line OK, `Install-PSResource NetworkSecurityAudit -Repository PSGallery -TrustRepository` (not `Install-Module`, whose NuGet-provider and untrusted-repository prompts would stop a remote console), and skip the temporary folder.
 - `Get-Help <function>` shows what each returns. If a function fails, fall back to the plain commands in the check files and note it in the feedback.
 
 When you are done, remind the user how to clean up: remote control stays open until they run `Disable-MCPRemoteControl` or close the console there, and on Linux/macOS `sudo -k` drops the cached sudo credentials.

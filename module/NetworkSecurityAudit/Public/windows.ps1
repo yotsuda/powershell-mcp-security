@@ -3,17 +3,27 @@
 function Find-NsaPermissiveFirewallRule {
     <#
     .SYNOPSIS
-    Reads the ACTIVE firewall policy and returns enabled inbound Allow rules that are open
-    to any remote address:
+    Reads the ACTIVE firewall policy and returns enabled inbound Allow rules. Kind says what
+    a rule lets in:
       AllowsEverything — protocol, port, program and service all Any: the firewall is a
-                         no-op for the rule's profiles. Each one is a finding.
-      OpenPort         — a port rule (not tied to a program or service) open to Any.
-      Icmp             — an ICMP rule open to Any; Port shows the ICMP type (8:0 = echo).
+                         no-op for the rule's profiles.
+      AllPorts         — every port of one protocol (e.g. TCP), not tied to a program or service.
+      OpenPort         — given ports, not tied to a program or service.
+      Program          — only traffic for one program (System = kernel listeners such as SMB).
+      Service          — only traffic for one service.
+      Icmp             — ICMP; Port shows the ICMP type (8:0 = echo).
+    Without -All, returns the rules open to any remote address whose Kind is AllowsEverything,
+    AllPorts, OpenPort or Icmp — each AllowsEverything or AllPorts rule is a finding.
     Store-app rules (those with an Owner) are confined to their package and skipped.
     Always ends with a line saying how many rules were checked, so "no output" can be told
-    apart from "nothing could be read". Takes up to half a minute with a few hundred rules.
+    apart from "nothing could be read"; it goes to the information stream (capture it with
+    -InformationVariable). Takes up to half a minute with a few hundred rules.
+    The table shows Kind, Port, Protocol, Profile, Remote and Name; Program, Service and Source
+    are there too (Format-List *, or Select-Object).
     .PARAMETER All
-    Return every enabled inbound Allow rule with its filters, not only the kinds above.
+    Return every enabled inbound Allow rule, whatever its Kind and remote address.
+    `WFD Driver-only (TCP-In/UDP-In)` come out as Program System with everything else Any:
+    Windows default rules for Wi-Fi Direct driver traffic, not allow-everything rules.
     .PARAMETER Port
     Only rules whose local ports include one of these (e.g. 135, 445, RPCEPMap) — among the
     kinds above, or among every rule with -All. A number also matches a range such as
@@ -25,6 +35,7 @@ function Find-NsaPermissiveFirewallRule {
     .EXAMPLE
     Find-NsaPermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap
     #>
+    [CmdletBinding()]
     param([switch]$All, [string[]]$Port)
     Assert-Platform 'Find-NsaPermissiveFirewallRule' $IsWindows 'Windows'
     $allRules = @(Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow)
@@ -52,13 +63,18 @@ function Find-NsaPermissiveFirewallRule {
             Source   = "$($r.PolicyStoreSourceType)"
             Name     = $r.DisplayName
         }
-        if ($o.Protocol -match '^ICMP') {
-            # ICMP rules carry LocalPort 'RPC' as a placeholder; what they allow is the ICMP type.
-            $o.Port = "type $($x.Port.IcmpType)"
-            if ($o.Remote -eq 'Any') { $o.Kind = 'Icmp' }
-        } elseif ($o.Remote -eq 'Any' -and $o.Program -eq 'Any' -and $o.Service -eq 'Any') {
-            $o.Kind = if ($o.Protocol -eq 'Any' -and $o.Port -eq 'Any') { 'AllowsEverything' } elseif ($o.Port -ne 'Any') { 'OpenPort' } else { '' }
-        }
+        $o.Kind =
+            if ($o.Protocol -match '^ICMP') {
+                # ICMP rules carry LocalPort 'RPC' as a placeholder; what they allow is the ICMP type.
+                $o.Port = "type $($x.Port.IcmpType)"
+                'Icmp'
+            }
+            elseif ($o.Service -ne 'Any') { 'Service' }
+            elseif ($o.Program -ne 'Any') { 'Program' }
+            elseif ($o.Port -ne 'Any') { 'OpenPort' }
+            elseif ($o.Protocol -eq 'Any') { 'AllowsEverything' }
+            else { 'AllPorts' }
+        $o.PSObject.TypeNames.Insert(0, 'NetworkSecurityAudit.FirewallRule')
         if ($Port) {
             $hit = @($x.Port.LocalPort) | Where-Object {
                 $lp = "$_"
@@ -72,7 +88,7 @@ function Find-NsaPermissiveFirewallRule {
             }
             if ($o.Protocol -match '^ICMP' -or -not $hit) { continue }
         }
-        if ($All -or $o.Kind) { $o }
+        if ($All -or ($o.Remote -eq 'Any' -and $o.Kind -in 'AllowsEverything', 'AllPorts', 'OpenPort', 'Icmp')) { $o }
     }
     Write-Host "Find-NsaPermissiveFirewallRule: $($rules.Count) enabled inbound Allow rules checked ($($allRules.Count - $rules.Count) store-app rules skipped)."
 }

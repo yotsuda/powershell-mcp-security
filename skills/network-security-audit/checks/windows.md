@@ -47,7 +47,7 @@ netsh advfirewall show currentprofile
 
 **Rules that allow everything** — the one check that matters most. An inbound Allow rule with protocol, local port, remote address, program and service all `Any` makes the firewall a no-op for that profile. Rules with an `Owner` are Store-app (app-container) rules, confined to their package — skip them.
 
-With the helpers loaded: `Find-NsaPermissiveFirewallRule` returns each rule as `AllowsEverything` (a finding of its own), `OpenPort` (a port rule open to any address) or `Icmp` (with the ICMP type; echo `8:0` is usually fine); it takes about half a minute, so tell the user. Without them, the same logic by hand — fetching the filters per rule takes minutes on a machine with hundreds of rules, so fetch them in bulk and fall back per rule only where bulk access was denied (non-elevated consoles cannot read every rule in bulk):
+With the helpers loaded: `Find-NsaPermissiveFirewallRule` returns the rules open to any address as `AllowsEverything` or `AllPorts` (each a finding of its own), `OpenPort` (a port rule) or `Icmp` (with the ICMP type; echo `8:0` is usually fine); with `-All` it returns every rule, the rest as `Program` or `Service`; it takes about half a minute, so tell the user. Without them, the same logic by hand — fetching the filters per rule takes minutes on a machine with hundreds of rules, so fetch them in bulk and fall back per rule only where bulk access was denied (non-elevated consoles cannot read every rule in bulk):
 
 ```powershell
 $rules = Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow | Where-Object { -not $_.Owner }
@@ -72,7 +72,7 @@ $fwRules | Where-Object { $_.Protocol -eq 'Any' -and $_.Port -eq 'Any' -and $_.R
 It takes about half a minute; tell the user. Each "ALLOWS EVERYTHING" line is a finding of its own. Then, from the same `$fwRules`, list the port rules open to any remote address — one line each, so nothing is cut off:
 
 ```powershell
-$fwRules | Where-Object { $_.Remote -eq 'Any' -and $_.Program -eq 'Any' -and $_.Port -ne 'Any' } |
+$fwRules | Where-Object { $_.Protocol -in 'TCP', 'UDP' -and $_.Remote -eq 'Any' -and $_.Program -eq 'Any' -and $_.Port -ne 'Any' } |
     ForEach-Object { '{0} | {1} | {2}/{3}' -f $_.Name, $_.Profile, $_.Protocol, $_.Port }
 ```
 
@@ -182,7 +182,7 @@ Logon type 3 = network, 10 = RDP, 5 = service (local, not an attack). Failures (
 
 These are normal there — do not report them as holes, but mention the ones that change severity:
 
-- Firewall rules `Container: allow inbound` / `allow outbound` (all Any) and ICMP echo, added by the container platform: everything listening is reachable from the host and other guests on the same switch.
+- Firewall rules `Container: allow inbound` / `allow outbound` (all Any) and ICMP echo, added by the container platform: everything listening is reachable from the host and other guests on the same switch. The ICMP echo rules show `LocalPort RPC` — a placeholder ICMP rules carry, not an opening of the RPC endpoint mapper.
 - `EnableLUA = 0`; the logged-on `WDAGUtilityAccount` is an administrator with a password generated at each start.
 - **Elevation in a Sandbox**: there is no UAC prompt and nobody knows the administrator's password, so a console opened as another, non-admin user (e.g. via `runas`) cannot be elevated. For the Admin checks, ask the user to paste the connection line again into a PowerShell window of the Sandbox's own logon (WDAGUtilityAccount, already an administrator), then reconnect.
 - Dialing in from a Sandbox: this machine's host name may not resolve there; its address on the Default Switch (the Sandbox's default gateway) always works.

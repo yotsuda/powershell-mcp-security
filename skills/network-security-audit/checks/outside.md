@@ -93,12 +93,14 @@ foreach ($h in '<this machine on the target network>', '<this machine on the LAN
 
 The two addresses can give different answers (e.g. 139 reachable on the LAN address but not on the virtual switch address): traffic to the LAN address is judged by the LAN interface's profile (often **Private**), and a `LocalSubnet` rule there also counts this machine's virtual switch subnet as local. Report each address as its own row, check Private `LocalSubnet` rules as well as Public ones, and re-test both addresses after a host-side fix.
 
-Check this machine's LAN profile too: `Get-NetConnectionProfile`. If the LAN interface (Wi-Fi, Ethernet) is **Public**, a rule enabled for Public with remote `Any` — e.g. `File and Printer Sharing (Restrictive) (SMB-In)` — opens this machine to everyone on that network, not only to guests: on a café or hotel Wi-Fi, to strangers. Report it as its own host-side finding (High on a network the user does not control), and say it was inferred from the rules and not tested from another machine on that network.
+Check this machine's LAN profile too: `Get-NetConnectionProfile`. If the LAN interface (Wi-Fi, Ethernet) is **Public**, a rule enabled for Public (or for profile `Any`) with remote `Any` — e.g. `File and Printer Sharing (Restrictive) (SMB-In)`, or `Hyper-V (RPC-EPMAP)` and the two `Hyper-V … WMI (DCOM-In)` rules that open TCP 135 on every network once Hyper-V is installed — opens this machine to everyone on that network, not only to guests: on a café or hotel Wi-Fi, to strangers. Report it as its own host-side finding (High on a network the user does not control), and say it was inferred from the rules and not tested from another machine on that network.
 
 For each port that is reachable, collect the evidence for a fix on the host side — on **this machine**, where the module is already imported:
 
 - what listens: `Get-NsaListeningPort` (or `Get-NetTCPConnection -LocalPort <port> -State Listen`);
-- which rule lets it in: `Find-NsaPermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap` (every profile, `Any` and `LocalSubnet` alike).
+- which rule lets it in: `Find-NsaPermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap` (every profile, `Any` and `LocalSubnet` alike). It also lists `WFD Driver-only (TCP-In)` / `(UDP-In)` with everything `Any`: Windows default rules for Wi-Fi Direct driver traffic, not allow-everything rules — the probe shows what actually gets through.
+
+If 135 is reachable, the RPC dynamic ports behind it may be too; the six-port probe does not cover them, so list them under "Not checked" (or find what `svchost` / `wmiprvse` listen on with `Get-NsaListeningPort` and probe those few from the target).
 
 `vEthernet (Default Switch)` has no network profile (it is missing from `Get-NetConnectionProfile`), so this machine's firewall treats traffic from guests as **Public**: its Public rules are the ones that apply. Rules often found: `File and Printer Sharing (Restrictive) (SMB-In)` (a rule group added in Windows 11 24H2; seen enabled for Private and Public, remote Any, on a host with a shared folder, probably turned on when the folder was shared), `Hyper-V (RPC-EPMAP)`, `Windows Remote Management (HTTP-In)` (Public, LocalSubnet — which includes the guest's subnet).
 
@@ -114,4 +116,4 @@ For each port:
 | yes | no | Blocked by a firewall — name the rule |
 | no | yes | Something else answers (NAT, port forward, another host) — investigate |
 
-Compare per address family. A port bound to `0.0.0.0` or an IPv4 address only is not listening on IPv6, and one bound to `::` only (without dual-stack) not on IPv4. On a Windows target in stealth mode, such a port shows `Filtered` on the other family — that is "not listening there", not a firewall block. Probe IPv6 with the ports bound to `::` or the link-local address, and read the rest accordingly.
+Compare per address family. A port bound to `0.0.0.0` or an IPv4 address only is not listening on IPv6; on a Windows target in stealth mode it shows `Filtered` over IPv6 — "not listening there", not a firewall block. The reverse does not hold: on Windows a `::` row does not say whether the socket also takes IPv4 (the kernel SMB listener, `System` on 445, shows as `::` only and answers on IPv4 too). So probe both families instead of inferring from the bind address, and treat only an IPv4-only bind as an explanation for `Filtered` on IPv6.
