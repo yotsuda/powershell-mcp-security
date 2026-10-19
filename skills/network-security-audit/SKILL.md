@@ -33,7 +33,7 @@ The PowerShell module **NetworkSecurityAudit** holds functions that encode check
   1. **Copy the bundled module over SSH** — when this machine can already log in to the target with SSH (typical for Linux and macOS servers): from this machine, `scp -r '<skill dir>/../../module/NetworkSecurityAudit' <user>@<target>:/tmp/`, then on the target `Import-Module /tmp/NetworkSecurityAudit`. Use the key the user logs in with, and `-o BatchMode=yes` so it fails instead of prompting.
   2. **Fetch it from the PowerShell Gallery** — when the target can reach the Internet:
      ```powershell
-     $nsa = Join-Path ([IO.Path]::GetTempPath()) 'nsa'; Save-PSResource NetworkSecurityAudit -Repository PSGallery -Path $nsa -TrustRepository; Import-Module (Join-Path $nsa NetworkSecurityAudit)
+     $nsa = Join-Path ([IO.Path]::GetTempPath()) 'nsa'; $null = New-Item -ItemType Directory -Force $nsa; Save-PSResource NetworkSecurityAudit -Repository PSGallery -Path $nsa -TrustRepository; Import-Module (Join-Path $nsa NetworkSecurityAudit)
      ```
   3. Otherwise — no SSH from here (Windows usually has none, nor does a target that dialed in from behind NAT) and no Internet, or the user declines — use the plain commands in the check files.
 
