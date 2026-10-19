@@ -30,7 +30,7 @@ Run the tests with `Invoke-Pester module/tests`, on each OS the change touches. 
 
 ## Releases
 
-The skill and the module share one version number and are released together. Pushes to `main` do not reach users: the marketplace serves the plugin from the `release` branch. To release X.Y.Z, a maintainer sets `version` in `.claude-plugin/plugin.json` and `ModuleVersion` and `ReleaseNotes` in the module manifest to X.Y.Z, and pushes a tag `vX.Y.Z` on that commit of `main`. The release workflow tests, publishes the module to the PowerShell Gallery, moves `release` to the tag and creates a GitHub Release — so the module bundled in a released plugin is always the one on the Gallery with the same version.
+The skill and the module share one version number and are released together. Pushes to `main` do not reach users: the marketplace serves the plugin from the `release` branch. To release X.Y.Z, a maintainer sets `version` in `.claude-plugin/plugin.json` and `ModuleVersion` and `ReleaseNotes` in the module manifest to X.Y.Z, and pushes a tag `vX.Y.Z` on that commit of `main`. The release workflow tests, publishes the module to the PowerShell Gallery, moves `release` to the tag and creates a GitHub Release — so the module bundled in a released plugin is always the one on the Gallery with the same version. Step by step, with what to do when a step fails: [RELEASING.md](RELEASING.md).
 
 ## Adding or changing a fix
 
