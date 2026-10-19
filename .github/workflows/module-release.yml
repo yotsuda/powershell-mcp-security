@@ -1,0 +1,87 @@
+name: Module release
+
+# Push a tag `module-vX.Y.Z` to publish NetworkSecurityAudit X.Y.Z to the PowerShell Gallery.
+# The manifest's ModuleVersion must equal X.Y.Z, and its ReleaseNotes become the GitHub Release notes.
+# Needs the repository secret PSGALLERY_API_KEY.
+
+on:
+  push:
+    tags:
+      - 'module-v*.*.*'
+
+jobs:
+  test:
+    uses: ./.github/workflows/module-test.yml
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        id: ver
+        shell: pwsh
+        run: |
+          $tag = "$env:GITHUB_REF_NAME"
+          "version=$($tag -replace '^module-v', '')" | Out-File $env:GITHUB_OUTPUT -Append
+          "tag=$tag" | Out-File $env:GITHUB_OUTPUT -Append
+
+      - name: Check the manifest against the tag (fail fast)
+        id: notes
+        shell: pwsh
+        run: |
+          $expected = '${{ steps.ver.outputs.version }}'
+          $data = Import-PowerShellDataFile module/NetworkSecurityAudit/NetworkSecurityAudit.psd1
+          if ($data.ModuleVersion -ne $expected) {
+            throw "ModuleVersion $($data.ModuleVersion) != tag $expected"
+          }
+          $notes = $data.PrivateData.PSData.ReleaseNotes
+          if ([string]::IsNullOrWhiteSpace($notes)) { throw 'PrivateData.PSData.ReleaseNotes is empty.' }
+          $path = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          Set-Content $path $notes -Encoding utf8
+          "notes_path=$path" | Out-File $env:GITHUB_OUTPUT -Append
+
+      - name: Refuse a version that is already on the Gallery
+        shell: pwsh
+        run: |
+          $v = '${{ steps.ver.outputs.version }}'
+          if (Find-PSResource NetworkSecurityAudit -Version $v -Repository PSGallery -ErrorAction SilentlyContinue) {
+            throw "NetworkSecurityAudit $v is already published. Raise ModuleVersion and tag again."
+          }
+
+      - name: Assemble the package
+        id: stage
+        shell: pwsh
+        run: |
+          $stage = Join-Path $env:RUNNER_TEMP 'NetworkSecurityAudit'
+          Copy-Item module/NetworkSecurityAudit $stage -Recurse
+          Copy-Item LICENSE $stage
+          "stage=$stage" | Out-File $env:GITHUB_OUTPUT -Append
+          Get-ChildItem $stage -Recurse | ForEach-Object FullName
+
+      - name: Smoke test the assembled package (last gate before publish)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module '${{ steps.stage.outputs.stage }}' -Force
+          $m = Get-Module NetworkSecurityAudit
+          if ($m.Version.ToString() -ne '${{ steps.ver.outputs.version }}') { throw "Loaded $($m.Version)" }
+          $r = Test-TcpPort 127.0.0.1 -Port 1
+          if ($r.State -ne 'Closed') { throw "Test-TcpPort returned $($r.State)" }
+          Write-Host "NetworkSecurityAudit $($m.Version): $($m.ExportedFunctions.Keys -join ', ')"
+
+      - name: Publish to the PowerShell Gallery
+        shell: pwsh
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
+        run: |
+          if ([string]::IsNullOrEmpty($env:PSGALLERY_API_KEY)) { throw 'The secret PSGALLERY_API_KEY is not set.' }
+          Publish-PSResource -Path '${{ steps.stage.outputs.stage }}' -Repository PSGallery -ApiKey $env:PSGALLERY_API_KEY -Verbose
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${{ steps.ver.outputs.tag }}" --title "NetworkSecurityAudit ${{ steps.ver.outputs.version }}" --notes-file "${{ steps.notes.outputs.notes_path }}"

@@ -1,0 +1,48 @@
+name: Module tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['module/**', '.github/workflows/module-*.yml']
+  pull_request:
+    paths: ['module/**', '.github/workflows/module-*.yml']
+  workflow_call:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntax check
+        shell: pwsh
+        run: |
+          $failed = $false
+          foreach ($f in Get-ChildItem module -Recurse -Include *.ps1, *.psm1, *.psd1) {
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$errors)
+            foreach ($e in $errors) {
+              $failed = $true
+              Write-Host "::error file=$($f.FullName),line=$($e.Extent.StartLineNumber)::$($e.Message)"
+            }
+          }
+          if ($failed) { throw 'Syntax check failed.' }
+
+      - name: Manifest
+        shell: pwsh
+        run: Test-ModuleManifest module/NetworkSecurityAudit/NetworkSecurityAudit.psd1 | Format-List Name, Version, ExportedFunctions
+
+      - name: Pester
+        shell: pwsh
+        run: |
+          Install-Module Pester -MinimumVersion 5.5 -Scope CurrentUser -Force -SkipPublisherCheck
+          Import-Module Pester -MinimumVersion 5.5
+          $c = New-PesterConfiguration
+          $c.Run.Path = 'module/tests'
+          $c.Run.Exit = $true
+          $c.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $c
