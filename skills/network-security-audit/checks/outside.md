@@ -79,34 +79,42 @@ ssh -n -o BatchMode=yes -o IdentitiesOnly=yes -i <that key> -o ConnectTimeout=5 
 
 ## From the target back to this machine
 
-Only when the target's role is a sandbox, a malware-analysis VM or any place that runs untrusted code: there the real attack surface is what the **guest** can reach. Run on the **target**, against **this machine's own addresses only** — its address on the target's network (the NAT gateway) and its LAN address — and a handful of ports. This stays within the rule of probing nothing but machines the user owns; never sweep ranges or other hosts from the target.
+Only when the target's role is a sandbox, a malware-analysis VM or any place that runs untrusted code: there the real attack surface is what the **guest** can reach. Run on the **target**, against **this machine's own addresses only** — its address on the target's network (the NAT gateway), its LAN address, and its link-local IPv6 address on the target's link (`fe80::…` of `vEthernet (Default Switch)`, with the **target's** interface index as zone). This stays within the rule of probing nothing but machines the user owns; never sweep ranges or other hosts from the target.
+
+Probe **every TCP port this machine listens on** outside loopback, not a fixed list: a handful of well-known ports misses Hyper-V's VM connect (2179), UPnP / WSD (2869, 5357), CDPSvc (5040) and third-party agents (print clients, VPN, remote support, endpoint tools) whose installers add rules for profile `Any` and remote `Any`. First, on **this machine**:
 
 ```powershell
-foreach ($h in '<this machine on the target network>', '<this machine on the LAN>') {
-    foreach ($p in 135, 139, 445, 3389, 5985, 5986) {
-        $c = [System.Net.Sockets.TcpClient]::new()
-        try { $ok = $c.ConnectAsync($h, $p).Wait(1500) -and $c.Connected } catch { $ok = $false } finally { $c.Dispose() }
-        "$h $p $ok"
-    }
+(Get-NsaListeningPort -Protocol TCP | Where-Object { $_.Address -notmatch '^(127\.|::1$)' } | Select-Object -ExpandProperty Port -Unique | Sort-Object) -join ','
+```
+
+Leave out the audit's own accept port if this machine has one (`accept_remote_console`). Then on the **target**, with that list:
+
+```powershell
+$ports = <the list>
+foreach ($h in '<this machine on the target network>', '<this machine on the LAN>', '<this machine fe80::…%<target ifIndex>>') {
+    $a = [System.Net.IPAddress]::Parse($h)
+    $open = $ports | ForEach-Object -ThrottleLimit 32 -Parallel {
+        $c = [System.Net.Sockets.TcpClient]::new(($using:a).AddressFamily)
+        try { if ($c.ConnectAsync($using:a, $_).Wait(1500) -and $c.Connected) { $_ } } catch {} finally { $c.Dispose() }
+    } | Sort-Object
+    "$h -> $($open -join ',')"
 }
 ```
 
-The two addresses can give different answers (e.g. 139 reachable on the LAN address but not on the virtual switch address): traffic to the LAN address is judged by the LAN interface's profile (often **Private**), and a `LocalSubnet` rule there also counts this machine's virtual switch subnet as local. Report each address as its own row, check Private `LocalSubnet` rules as well as Public ones, and re-test both addresses after a host-side fix.
+The IPv6 row needs no ping as a positive control: this machine's firewall may drop ICMPv6 echo from the guest (`Test-Connection` times out) while TCP ports a rule allows still answer — an open port there is its own proof that the route works. If nothing answers on IPv6 at all, say so under "Not checked" rather than reading it as blocked.
+
+The addresses can give different answers (e.g. 139 reachable on the LAN address but not on the virtual switch address): traffic to the LAN address is judged by the LAN interface's profile (often **Private**), and a `LocalSubnet` rule there also counts this machine's virtual switch subnet as local. Report each address as its own row, check Private `LocalSubnet` rules as well as Public ones, and re-test both addresses after a host-side fix.
 
 Check this machine's LAN profile too: `Get-NetConnectionProfile`. If the LAN interface (Wi-Fi, Ethernet) is **Public**, a rule enabled for Public (or for profile `Any`) with remote `Any` — e.g. `File and Printer Sharing (Restrictive) (SMB-In)`, or `Hyper-V (RPC-EPMAP)` and the two `Hyper-V … WMI (DCOM-In)` rules that open TCP 135 on every network once Hyper-V is installed — opens this machine to everyone on that network, not only to guests: on a café or hotel Wi-Fi, to strangers. Report it as its own host-side finding (High on a network the user does not control), and say it was inferred from the rules and not tested from another machine on that network.
 
 For each port that is reachable, collect the evidence for a fix on the host side — on **this machine**, where the module is already imported:
 
 - what listens: `Get-NsaListeningPort` (or `Get-NetTCPConnection -LocalPort <port> -State Listen`);
-- which rule lets it in: `Find-NsaPermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap` (every profile, `Any` and `LocalSubnet` alike). It also lists `WFD Driver-only (TCP-In)` / `(UDP-In)` with everything `Any`: Windows default rules for Wi-Fi Direct driver traffic, not allow-everything rules — the probe shows what actually gets through.
+- which rule lets it in: `Find-NsaPermissiveFirewallRule -All -Port <the reachable ports>, RPCEPMap` (every profile, `Any` and `LocalSubnet` alike). It also lists `WFD Driver-only (TCP-In)` / `(UDP-In)` with everything `Any`: Windows default rules for Wi-Fi Direct driver traffic, not allow-everything rules — the probe shows what actually gets through.
 
-If 135 is reachable, the RPC dynamic ports behind it may be too, and that changes the severity. List them on this machine, leaving out the audit's own accept port:
+The listener list includes the RPC dynamic ports (49152 and up): if 135 is reachable, say which of them are too (e.g. `spoolsv` behind a File and Printer Sharing spooler rule) — that changes the severity.
 
-```powershell
-Get-NsaListeningPort -Protocol TCP | Where-Object { $_.Port -ge 49152 -and $_.Address -in '0.0.0.0', '::' } | Select-Object -ExpandProperty Port -Unique
-```
-
-then run the same loop on the target with those ports, against both of this machine's addresses. If you skip it, list the dynamic ports under "Not checked".
+A rule for profile `Any` with remote `Any` (typical of third-party agents) is open on **every** network this machine joins, not only to guests: report it as its own host-side finding, like the Public rules below.
 
 `vEthernet (Default Switch)` has no network profile (it is missing from `Get-NetConnectionProfile`), so this machine's firewall treats traffic from guests as **Public**: its Public rules are the ones that apply. Rules often found: `File and Printer Sharing (Restrictive) (SMB-In)` (a rule group added in Windows 11 24H2; seen enabled for Private and Public, remote Any, on a host with a shared folder, probably turned on when the folder was shared), `Hyper-V (RPC-EPMAP)`, `Windows Remote Management (HTTP-In)` (Public, LocalSubnet — which includes the guest's subnet).
 

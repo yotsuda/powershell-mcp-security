@@ -20,7 +20,10 @@ Write the report in the user's language. Keep it short; put raw command output o
 
 ## Not checked
 <what you could not check and why — always state the vantage point of the outside checks
- (e.g. "from the Hyper-V host only, not from the LAN"), the ports covered, and whether UDP was checked>
+ (e.g. "from the Hyper-V host only, not from the LAN"), the ports covered, and whether UDP was checked;
+ when this machine is the target's NAT gateway, that reachability from the LAN was not ruled out;
+ for a guest on a Hyper-V switch, whether the other guests on that switch were looked at (`Get-VM`);
+ checks skipped as not applicable (e.g. BitLocker in a Sandbox), each with the reason>
 
 ## Cleanup
 <how to end remote control, `sudo -k`, and how to confirm 42777 is closed afterwards>

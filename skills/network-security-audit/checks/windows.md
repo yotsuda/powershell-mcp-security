@@ -76,7 +76,7 @@ $fwRules | Where-Object { $_.Protocol -in 'TCP', 'UDP' -and $_.Remote -eq 'Any' 
     ForEach-Object { '{0} | {1} | {2}/{3}' -f $_.Name, $_.Profile, $_.Protocol, $_.Port }
 ```
 
-A rule limited to one program or service is far less exposed than a bare port rule. To find which rules allow given ports: `Find-NsaPermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap` (matches rules listing several ports too, skips ICMP rules). Look at every profile, not only Public — and at `LocalSubnet` rules as well as `Any`. Finding: a profile disabled, default inbound Allow, an allow-everything rule, port rules open to `Any` on the Public profile. The cross-check with the outside probe tells you whether anything is actually blocked.
+A rule limited to one program or service is far less exposed than a bare port rule. To find which rules allow given ports: `Find-NsaPermissiveFirewallRule -All -Port 135, 139, 445, 5985, RPCEPMap` (matches rules listing several ports too, skips ICMP rules). Look at every profile, not only Public — and at `LocalSubnet` rules as well as `Any`: without `-All`, `Find-NsaPermissiveFirewallRule` returns only rules open to remote `Any`, so list the rest with `Find-NsaPermissiveFirewallRule -All | Where-Object Remote -eq 'LocalSubnet'`. Finding: a profile disabled, default inbound Allow, an allow-everything rule, port rules open to `Any` on the Public profile. The cross-check with the outside probe tells you whether anything is actually blocked.
 
 ## Remote access
 
