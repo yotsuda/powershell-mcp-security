@@ -84,10 +84,10 @@ Only when the target's role is a sandbox, a malware-analysis VM or any place tha
 Probe **every TCP port this machine listens on** outside loopback, not a fixed list: a handful of well-known ports misses Hyper-V's VM connect (2179), UPnP / WSD (2869, 5357), CDPSvc (5040) and third-party agents (print clients, VPN, remote support, endpoint tools) whose installers add rules for profile `Any` and remote `Any`. First, on **this machine**:
 
 ```powershell
-(Get-NsaListeningPort -Protocol TCP | Where-Object { $_.Address -notmatch '^(127\.|::1$)' } | Select-Object -ExpandProperty Port -Unique | Sort-Object) -join ','
+(Get-NsaListeningPort -Protocol TCP | Select-Object -ExpandProperty Port -Unique | Sort-Object) -join ','
 ```
 
-Leave out the audit's own accept port if this machine has one (`accept_remote_console`). Then on the **target**, with that list:
+`Get-NsaListeningPort` leaves out loopback-only sockets by itself. Leave out the audit's own accept port if this machine has one (`accept_remote_console`). Then on the **target**, with that list and this machine's addresses written as **IP addresses** (the loop parses them; a host name fails):
 
 ```powershell
 $ports = <the list>
